@@ -10,7 +10,7 @@ import {
   ARAM_CHAMPS_CHALLENGE_ID,
   ARENA_CHAMPION_CHALLENGE_ID,
   ARENA_OCEAN_CHALLENGE_ID,
-} from "./contants"
+} from "./constants"
 import ChallengeSection from "./components/ChallengeSection.vue"
 
 const credentials = ref<LCUCredentials | null>(null)
