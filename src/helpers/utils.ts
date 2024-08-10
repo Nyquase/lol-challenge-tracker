@@ -24,6 +24,7 @@ export function challengeFromCompletedIds(
 ): Challenge {
   return {
     name: raw.name,
+    description: raw.description,
     champions: allChamps.map((c) => ({
       ...c,
       done: raw.completedIds.includes(c.id),

@@ -5,6 +5,7 @@ export interface Champion {
 
 export interface Challenge {
   name: string
+  description: string
   champions: Array<Champion & { done: boolean }>
   totalDone: number
 }

@@ -9,5 +9,6 @@ export interface LCUCredentials {
 export interface RawChallenge {
   completedIds: string[]
   name: string
+  description: string
   // Lot more but not used
 }

@@ -68,7 +68,7 @@ const onClickRefresh = () => {
 <template>
   <div class="app">
     <button class="refresh" @click="onClickRefresh">Refresh</button>
-    <div v-if="credentials">
+    <div class="challenges" v-if="credentials">
       <ChallengeSection
         v-if="allChampions && arenaOcean"
         :challenge="arenaOcean"
@@ -98,6 +98,10 @@ const onClickRefresh = () => {
   border-top: solid 2px #785a28;
   background: linear-gradient(#091428, #0a1428);
   position: relative;
+}
+
+.challenges > * {
+  margin-bottom: 32px;
 }
 
 button.refresh {
