@@ -1,9 +1,12 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+
 import { app, BrowserWindow, shell, ipcMain } from "electron"
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import path from "node:path"
 import os from "node:os"
 import LCUConnector from "lcu-connector"
+import { WebSocket } from "ws"
 
 interface LCUCredentials {
   address: string
@@ -95,9 +98,37 @@ function sendCredentials(win: BrowserWindow, credentials: LCUCredentials) {
   win.webContents.send("credentials", credentials)
 }
 
+async function connectWebsocket(
+  win: BrowserWindow,
+  credentials: LCUCredentials
+) {
+  const { address, port, username, password } = credentials
+  const url = `wss://${address}:${port}/`
+  const headers = {
+    Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString(
+      "base64"
+    )}`,
+  }
+
+  const ws = new WebSocket(url, "wamp", { headers })
+
+  ws.on("message", (message) => {
+    console.log("message", JSON.parse(message.toString()))
+    win.webContents.send("refetch")
+  })
+
+  ws.on("open", () => {
+    ws.send('[5, "OnJsonApiEvent_lol-lobby_v2_party_eog-status"]')
+    ws.send('[5, "OnJsonApiEvent_lol-end-of-game_v1_eog-stats-block"]')
+  })
+}
+
 function connectToLcu(win: BrowserWindow) {
   const connector = new LCUConnector()
-  connector.on("connect", (credentials) => sendCredentials(win, credentials))
+  connector.on("connect", (credentials) => {
+    sendCredentials(win, credentials)
+    connectWebsocket(win, credentials)
+  })
   connector.on("disconnect", () => sendCredentials(win, null))
   connector.start()
 }
@@ -132,5 +163,7 @@ async function main() {
     process.exit(0)
   })
 }
+
+app.commandLine.appendSwitch("ignore-certificate-errors")
 
 main()

@@ -27,7 +27,9 @@
     "vue-tsc": "^2.0.6"
   },
   "dependencies": {
+    "@types/ws": "^8.5.12",
     "lcu-connector": "^2.1.4",
-    "vite-plugin-node-polyfills": "^0.22.0"
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "ws": "^8.18.0"
   }
 }

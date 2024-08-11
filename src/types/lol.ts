@@ -6,8 +6,9 @@ export interface Champion {
 export interface Challenge {
   name: string
   description: string
+  mode: GameMode
   champions: Array<Champion & { done: boolean }>
   totalDone: number
 }
 
-export type Mode = "Arena" | "Aram"
+export type GameMode = "Arena" | "Aram"

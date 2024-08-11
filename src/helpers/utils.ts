@@ -1,5 +1,10 @@
+import {
+  ARAM_CHAMPS_CHALLENGE_ID,
+  ARENA_CHAMPION_CHALLENGE_ID,
+  ARENA_OCEAN_CHALLENGE_ID,
+} from "../constants"
 import { LCUCredentials, RawChallenge } from "../types/lcu"
-import { Challenge, Champion } from "../types/lol"
+import { Challenge, Champion, GameMode } from "../types/lol"
 
 export async function makeRequest<T = any>(
   credentials: LCUCredentials,
@@ -20,7 +25,8 @@ export async function makeRequest<T = any>(
 
 export function challengeFromCompletedIds(
   raw: RawChallenge,
-  allChamps: Champion[]
+  allChamps: Champion[],
+  mode: GameMode
 ): Challenge {
   return {
     name: raw.name,
@@ -30,5 +36,12 @@ export function challengeFromCompletedIds(
       done: raw.completedIds.includes(c.id),
     })),
     totalDone: raw.completedIds.length,
+    mode,
   }
+}
+
+export const challengeIdToMode: Record<string, GameMode> = {
+  [ARENA_OCEAN_CHALLENGE_ID]: "Arena",
+  [ARENA_CHAMPION_CHALLENGE_ID]: "Arena",
+  [ARAM_CHAMPS_CHALLENGE_ID]: "Aram",
 }

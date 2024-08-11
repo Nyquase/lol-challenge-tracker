@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { Challenge, Champion, Mode } from "../types/lol"
+import { Challenge, Champion, GameMode } from "../types/lol"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
@@ -8,11 +8,10 @@ type Filter = (typeof Filters)[number]
 const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
-  mode: Mode
 }>()
 
 const championBuildLink = (champ: Champion) => {
-  switch (props.mode) {
+  switch (props.challenge.mode) {
     case "Arena":
       return `https://www.op.gg/modes/arena/${champ.alias.toLowerCase()}/build?region=global`
     case "Aram":
@@ -21,16 +20,27 @@ const championBuildLink = (champ: Champion) => {
 }
 
 const filter = ref<Filter>("All")
+const search = ref<string>("")
 
 const championsList = computed(() => {
+  let list = props.challenge.champions
   switch (filter.value) {
     case "All":
-      return props.challenge.champions
+      list = props.challenge.champions
+      break
     case "Done":
-      return props.challenge.champions.filter((c) => c.done)
+      list = props.challenge.champions.filter((c) => c.done)
+      break
     case "Not Done":
-      return props.challenge.champions.filter((c) => !c.done)
+      list = props.challenge.champions.filter((c) => !c.done)
+      break
   }
+
+  if (search.value) {
+    return list.filter(c => c.alias.toLocaleLowerCase().includes(search.value.toLowerCase()))
+  }
+
+  return list
 })
 </script>
 
@@ -44,6 +54,8 @@ const championsList = computed(() => {
       <select v-model="filter">
         <option v-for="filter in Filters" :value="filter">{{ filter }}</option>
       </select>
+      <input v-model="search"  placeholder="Search">
+      </input>
     </div>
     <p>{{ challenge.description }}</p>
     <div class="champion-icons">
@@ -68,11 +80,9 @@ const championsList = computed(() => {
   display: flex;
   align-items: center;
 }
-.heading select {
-  margin-left: 32px;
-}
 
-select {
+select, input{
+  margin-left: 32px;
   font-family: "Spiegel";
   font-size: 15px;
   font-weight: bold;
@@ -80,7 +90,6 @@ select {
   padding: 8px 16px;
   background: #1e2328;
   color: #cdbe91;
-  height: 44px;
   box-shadow: inset 0 0 2px #000000;
   border-image: linear-gradient(to bottom, #c8aa6d, #7a5c29);
   border-image-slice: 1;

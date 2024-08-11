@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import { LCUCredentials, RawChallenge } from "./types/lcu"
 import { Challenge, Champion } from "./types/lol"
 import {
   challengeFromCompletedIds as challengeFromRaw,
+  challengeIdToMode,
   makeRequest,
 } from "./helpers/utils"
 import {
@@ -38,19 +39,24 @@ const fetchAll = async () => {
 
   arenaOcean.value = challengeFromRaw(
     allChallenges[ARENA_OCEAN_CHALLENGE_ID],
-    allChamps
+    allChamps,
+    challengeIdToMode[ARENA_OCEAN_CHALLENGE_ID]
   )
 
   arenaChampion.value = challengeFromRaw(
     allChallenges[ARENA_CHAMPION_CHALLENGE_ID],
-    allChamps
+    allChamps,
+    challengeIdToMode[ARENA_CHAMPION_CHALLENGE_ID]
   )
 
   aramChamps.value = challengeFromRaw(
     allChallenges[ARAM_CHAMPS_CHALLENGE_ID],
-    allChamps
+    allChamps,
+    challengeIdToMode[ARAM_CHAMPS_CHALLENGE_ID]
   )
 }
+
+// const ws = ref<WebSocket | null>(null)
 
 window.ipcRenderer.on(
   "credentials",
@@ -60,32 +66,49 @@ window.ipcRenderer.on(
   }
 )
 
+window.ipcRenderer.on("refetch", fetchAll)
+
 const onClickRefresh = () => {
-  fetchAll()
+  if (credentials.value) {
+    fetchAll()
+  } else {
+    window.ipcRenderer.send("connect-to-lcu")
+  }
 }
+
+const tabs = computed(() => {
+  if (
+    allChampions.value &&
+    arenaOcean.value &&
+    arenaChampion.value &&
+    aramChamps.value
+  ) {
+    return [arenaOcean.value, arenaChampion.value, aramChamps.value]
+  }
+  return []
+})
+
+const selectedTabIndex = ref(0)
 </script>
 
 <template>
   <div class="app">
+    <div class="tabs">
+      <div
+        v-for="(challenge, idx) in tabs"
+        @click="selectedTabIndex = idx"
+        class="tab"
+        :class="{ selected: selectedTabIndex === idx }"
+      >
+        {{ challenge.name }}
+      </div>
+    </div>
     <button class="refresh" @click="onClickRefresh">Refresh</button>
-    <div class="challenges" v-if="credentials">
+    <div class="challenges" v-if="credentials && allChampions">
       <ChallengeSection
-        v-if="allChampions && arenaOcean"
-        :challenge="arenaOcean"
+        v-if="tabs[selectedTabIndex]"
+        :challenge="tabs[selectedTabIndex]"
         :all-champions="allChampions"
-        mode="Arena"
-      />
-      <ChallengeSection
-        v-if="allChampions && arenaChampion"
-        :challenge="arenaChampion"
-        :all-champions="allChampions"
-        mode="Arena"
-      />
-      <ChallengeSection
-        v-if="allChampions && aramChamps"
-        :challenge="aramChamps"
-        :all-champions="allChampions"
-        mode="Aram"
       />
     </div>
     <div v-else>Waiting for a client...</div>
@@ -98,6 +121,28 @@ const onClickRefresh = () => {
   border-top: solid 2px #785a28;
   background: linear-gradient(#091428, #0a1428);
   position: relative;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tab {
+  cursor: pointer;
+  padding: 8px;
+  border: solid 2px transparent;
+}
+
+.tab:hover {
+  border-bottom: solid 2px #785a28;
+  border-right: solid 2px #785a28;
+}
+
+.tab.selected {
+  border-bottom: solid 2px #785a28;
+  border-right: solid 2px #785a28;
 }
 
 .challenges > * {
