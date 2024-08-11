@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url"
 import path from "node:path"
 import os from "node:os"
 import LCUConnector from "lcu-connector"
+import { WebSocket } from "ws"
+import { Agent } from "https"
 
 interface LCUCredentials {
   address: string
@@ -95,9 +97,37 @@ function sendCredentials(win: BrowserWindow, credentials: LCUCredentials) {
   win.webContents.send("credentials", credentials)
 }
 
+async function connectWebsocket(
+  win: BrowserWindow,
+  credentials: LCUCredentials
+) {
+  const { address, port, username, password } = credentials
+  const url = `wss://${address}:${port}/`
+
+  const ws = new WebSocket(url, "wamp", {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString(
+        "base64"
+      )}`,
+    },
+    rejectUnauthorized: false,
+  })
+
+  ws.on("message", () => {
+    win.webContents.send("refetch")
+  })
+
+  ws.on("open", () => {
+    ws.send('[5, "OnJsonApiEvent_lol-end-of-game_v1_eog-stats-block"]')
+  })
+}
+
 function connectToLcu(win: BrowserWindow) {
   const connector = new LCUConnector()
-  connector.on("connect", (credentials) => sendCredentials(win, credentials))
+  connector.on("connect", (credentials) => {
+    sendCredentials(win, credentials)
+    connectWebsocket(win, credentials)
+  })
   connector.on("disconnect", () => sendCredentials(win, null))
   connector.start()
 }
@@ -132,5 +162,7 @@ async function main() {
     process.exit(0)
   })
 }
+
+app.commandLine.appendSwitch("ignore-certificate-errors")
 
 main()

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { computed, ref } from "vue"
 import { LCUCredentials, RawChallenge } from "./types/lcu"
 import { Challenge, Champion } from "./types/lol"
 import {
   challengeFromCompletedIds as challengeFromRaw,
+  challengeIdToMode,
   makeRequest,
 } from "./helpers/utils"
 import {
@@ -12,6 +13,8 @@ import {
   ARENA_OCEAN_CHALLENGE_ID,
 } from "./constants"
 import ChallengeSection from "./components/ChallengeSection.vue"
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
+import { faRefresh } from "@fortawesome/free-solid-svg-icons"
 
 const credentials = ref<LCUCredentials | null>(null)
 const allChampions = ref<Champion[] | null>(null)
@@ -38,19 +41,24 @@ const fetchAll = async () => {
 
   arenaOcean.value = challengeFromRaw(
     allChallenges[ARENA_OCEAN_CHALLENGE_ID],
-    allChamps
+    allChamps,
+    challengeIdToMode[ARENA_OCEAN_CHALLENGE_ID]
   )
 
   arenaChampion.value = challengeFromRaw(
     allChallenges[ARENA_CHAMPION_CHALLENGE_ID],
-    allChamps
+    allChamps,
+    challengeIdToMode[ARENA_CHAMPION_CHALLENGE_ID]
   )
 
   aramChamps.value = challengeFromRaw(
     allChallenges[ARAM_CHAMPS_CHALLENGE_ID],
-    allChamps
+    allChamps,
+    challengeIdToMode[ARAM_CHAMPS_CHALLENGE_ID]
   )
 }
+
+// const ws = ref<WebSocket | null>(null)
 
 window.ipcRenderer.on(
   "credentials",
@@ -60,32 +68,51 @@ window.ipcRenderer.on(
   }
 )
 
+window.ipcRenderer.on("refetch", fetchAll)
+
 const onClickRefresh = () => {
-  fetchAll()
+  if (credentials.value) {
+    fetchAll()
+  } else {
+    window.ipcRenderer.send("connect-to-lcu")
+  }
 }
+
+const tabs = computed(() => {
+  if (
+    allChampions.value &&
+    arenaOcean.value &&
+    arenaChampion.value &&
+    aramChamps.value
+  ) {
+    return [arenaOcean.value, arenaChampion.value, aramChamps.value]
+  }
+  return []
+})
+
+const selectedTabIndex = ref(0)
 </script>
 
 <template>
   <div class="app">
-    <button class="refresh" @click="onClickRefresh">Refresh</button>
-    <div class="challenges" v-if="credentials">
+    <div class="tabs">
+      <div
+        v-for="(challenge, idx) in tabs"
+        @click="selectedTabIndex = idx"
+        class="tab"
+        :class="{ selected: selectedTabIndex === idx }"
+      >
+        {{ challenge.name }}
+      </div>
+    </div>
+    <button class="refresh" title="Refresh" @click="onClickRefresh">
+      <FontAwesomeIcon :icon="faRefresh" />
+    </button>
+    <div class="challenges" v-if="credentials && allChampions">
       <ChallengeSection
-        v-if="allChampions && arenaOcean"
-        :challenge="arenaOcean"
+        v-if="tabs[selectedTabIndex]"
+        :challenge="tabs[selectedTabIndex]"
         :all-champions="allChampions"
-        mode="Arena"
-      />
-      <ChallengeSection
-        v-if="allChampions && arenaChampion"
-        :challenge="arenaChampion"
-        :all-champions="allChampions"
-        mode="Arena"
-      />
-      <ChallengeSection
-        v-if="allChampions && aramChamps"
-        :challenge="aramChamps"
-        :all-champions="allChampions"
-        mode="Aram"
       />
     </div>
     <div v-else>Waiting for a client...</div>
@@ -94,10 +121,32 @@ const onClickRefresh = () => {
 
 <style>
 .app {
-  padding: 16px;
-  border-top: solid 2px #785a28;
   background: linear-gradient(#091428, #0a1428);
+  border-top: solid 2px #785a28;
   position: relative;
+  padding: 16px;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tab {
+  cursor: pointer;
+  padding: 8px;
+  border: solid 2px transparent;
+}
+
+.tab:hover {
+  border-bottom: solid 2px #785a28;
+  border-right: solid 2px #785a28;
+}
+
+.tab.selected {
+  border-bottom: solid 2px #785a28;
+  border-right: solid 2px #785a28;
 }
 
 .challenges > * {
@@ -106,20 +155,16 @@ const onClickRefresh = () => {
 
 button.refresh {
   z-index: 2;
-  position: fixed;
-  right: 24px;
+  position: absolute;
+  right: 16px;
   top: 16px;
-  font-family: "Spiegel";
-  font-size: 15px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  padding: 8px 16px;
+  font-size: 16px;
+  padding: 10px;
   background: #1e2328;
   color: #cdbe91;
   box-shadow: inset 0 0 2px #000000;
-  border-image: linear-gradient(to bottom, #c8aa6d, #7a5c29);
-  border-image-slice: 1;
-  border-width: 2px;
+  border: solid 2px #785a28;
+  border-radius: 50%;
 }
 
 button.refresh:hover {

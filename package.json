@@ -1,6 +1,6 @@
 {
   "name": "lol-challenge-tracker",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist-electron/main/index.js",
   "description": "",
   "private": true,
@@ -27,7 +27,14 @@
     "vue-tsc": "^2.0.6"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.6.0",
+    "@fortawesome/free-brands-svg-icons": "^6.6.0",
+    "@fortawesome/free-regular-svg-icons": "^6.6.0",
+    "@fortawesome/free-solid-svg-icons": "^6.6.0",
+    "@fortawesome/vue-fontawesome": "^3.0.8",
+    "@types/ws": "^8.5.12",
     "lcu-connector": "^2.1.4",
-    "vite-plugin-node-polyfills": "^0.22.0"
+    "vite-plugin-node-polyfills": "^0.22.0",
+    "ws": "^8.18.0"
   }
 }
