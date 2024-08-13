@@ -58,26 +58,6 @@ const fetchAll = async () => {
   )
 }
 
-// const ws = ref<WebSocket | null>(null)
-
-window.ipcRenderer.on(
-  "credentials",
-  async (_event, newCredentials: LCUCredentials) => {
-    credentials.value = newCredentials
-    await fetchAll()
-  }
-)
-
-window.ipcRenderer.on("refetch", fetchAll)
-
-const onClickRefresh = () => {
-  if (credentials.value) {
-    fetchAll()
-  } else {
-    window.ipcRenderer.send("connect-to-lcu")
-  }
-}
-
 const tabs = computed(() => {
   if (
     allChampions.value &&
@@ -91,6 +71,36 @@ const tabs = computed(() => {
 })
 
 const selectedTabIndex = ref(0)
+
+const setTabIndex = (idx: number) => {
+  selectedTabIndex.value = idx
+  window.ipcRenderer.send("store-set", "tab-index", idx.toString())
+}
+
+window.ipcRenderer.on(
+  "credentials",
+  async (_event, newCredentials: LCUCredentials) => {
+    credentials.value = newCredentials
+    await fetchAll()
+    const storedTabIdx = await window.ipcRenderer.invoke(
+      "store-get",
+      "tab-index"
+    )
+    if (storedTabIdx) {
+      selectedTabIndex.value = Number(storedTabIdx)
+    }
+  }
+)
+
+window.ipcRenderer.on("refetch", fetchAll)
+
+const onClickRefresh = () => {
+  if (credentials.value) {
+    fetchAll()
+  } else {
+    window.ipcRenderer.send("connect-to-lcu")
+  }
+}
 </script>
 
 <template>
@@ -98,7 +108,7 @@ const selectedTabIndex = ref(0)
     <div class="tabs">
       <div
         v-for="(challenge, idx) in tabs"
-        @click="selectedTabIndex = idx"
+        @click="setTabIndex(idx)"
         class="tab"
         :class="{ selected: selectedTabIndex === idx }"
       >

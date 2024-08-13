@@ -5,7 +5,7 @@ import path from "node:path"
 import os from "node:os"
 import LCUConnector from "lcu-connector"
 import { WebSocket } from "ws"
-import { Agent } from "https"
+import Store from "electron-store"
 
 interface LCUCredentials {
   address: string
@@ -74,7 +74,6 @@ async function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
-    // #298
     win.loadURL(VITE_DEV_SERVER_URL)
     // Open devTool if the app is not packaged
     win.webContents.openDevTools()
@@ -132,12 +131,23 @@ function connectToLcu(win: BrowserWindow) {
   connector.start()
 }
 
+const store = new Store()
+
 async function main() {
   await app.whenReady()
   const win = await createWindow()
 
   ipcMain.on("app-ready", () => connectToLcu(win))
   ipcMain.on("connect-to-lcu", () => connectToLcu(win))
+
+  // ipcMain.on("store-set", store.set)
+  ipcMain.on("store-set", (_, key, value) => {
+    store.set(key, value)
+  })
+
+  ipcMain.handle("store-get", (_e, arg: string) => {
+    return store.get(arg)
+  })
 
   app.on(
     "certificate-error",
