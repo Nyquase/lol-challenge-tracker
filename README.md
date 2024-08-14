@@ -1,6 +1,6 @@
 # LoL Challenge Tracker
 
-> A simple electron app to see the advancement of champions related challenges in League of Legends
+> A simple app to see the advancement of League of Legends challnges where you need to track champions.
 
 ![screenshot](screenshot.png)
 
