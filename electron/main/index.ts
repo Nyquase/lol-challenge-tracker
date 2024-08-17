@@ -113,14 +113,16 @@ async function connectWebsocket(
 
 function connectToLcu(win: BrowserWindow) {
   const connector = new LCUConnector()
+  let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
-    connectWebsocket(win, credentials).catch(() =>
-      // LCU refuses websocket connections too early, so I retry later
-      setTimeout(() => connectWebsocket(win, credentials), 5 * 60 * 1000)
-    )
+    // LCU refuses websocket connections too early
+    wsTimeout = setTimeout(() => connectWebsocket(win, credentials), 10000)
   })
-  connector.on("disconnect", () => sendCredentials(win, null))
+  connector.on("disconnect", () => {
+    clearTimeout(wsTimeout)
+    return sendCredentials(win, null)
+  })
   connector.start()
 }
 

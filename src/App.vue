@@ -30,36 +30,38 @@ window.ipcRenderer.send("app-ready")
 
 const fetchAll = async () => {
   if (credentials.value === null) return
-  const champsRes = await makeRequest<Champion[]>(
-    credentials.value,
-    "/lol-champions/v1/owned-champions-minimal"
-  )
+  try {
+    const champsRes = await makeRequest<Champion[]>(
+      credentials.value,
+      "/lol-champions/v1/owned-champions-minimal"
+    )
 
-  const allChamps = champsRes.sort((a, b) => a.alias.localeCompare(b.alias))
-  allChampions.value = allChamps
+    const allChamps = champsRes.sort((a, b) => a.alias.localeCompare(b.alias))
+    allChampions.value = allChamps
 
-  const allChallenges: Record<string, RawChallenge> = await makeRequest(
-    credentials.value,
-    "/lol-challenges/v1/challenges/local-player"
-  )
+    const allChallenges: Record<string, RawChallenge> = await makeRequest(
+      credentials.value,
+      "/lol-challenges/v1/challenges/local-player"
+    )
 
-  arenaOcean.value = challengeFromRaw(
-    allChallenges[ARENA_OCEAN_CHALLENGE_ID],
-    allChamps,
-    challengeIdToMode[ARENA_OCEAN_CHALLENGE_ID]
-  )
+    arenaOcean.value = challengeFromRaw(
+      allChallenges[ARENA_OCEAN_CHALLENGE_ID],
+      allChamps,
+      challengeIdToMode[ARENA_OCEAN_CHALLENGE_ID]
+    )
 
-  arenaChampion.value = challengeFromRaw(
-    allChallenges[ARENA_CHAMPION_CHALLENGE_ID],
-    allChamps,
-    challengeIdToMode[ARENA_CHAMPION_CHALLENGE_ID]
-  )
+    arenaChampion.value = challengeFromRaw(
+      allChallenges[ARENA_CHAMPION_CHALLENGE_ID],
+      allChamps,
+      challengeIdToMode[ARENA_CHAMPION_CHALLENGE_ID]
+    )
 
-  aramChamps.value = challengeFromRaw(
-    allChallenges[ARAM_CHAMPS_CHALLENGE_ID],
-    allChamps,
-    challengeIdToMode[ARAM_CHAMPS_CHALLENGE_ID]
-  )
+    aramChamps.value = challengeFromRaw(
+      allChallenges[ARAM_CHAMPS_CHALLENGE_ID],
+      allChamps,
+      challengeIdToMode[ARAM_CHAMPS_CHALLENGE_ID]
+    )
+  } catch (e) {}
 }
 
 const tabs = computed(() => {
