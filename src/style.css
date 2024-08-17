@@ -12,17 +12,25 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --main-text-color: #f0e6d2;
+  --main-bg-gradient: linear-gradient(#091428, #0a1428);
 }
 
 body {
   height: 100vh;
-  background: linear-gradient(#091428, #0a1428);
+  background: var(--main-bg-gradient);
   margin: 0;
 }
 
 @font-face {
   font-family: "BeaufortforLOL";
   src: url("./fonts/BeaufortforLOL-Regular.ttf");
+}
+
+@font-face {
+  font-family: "BeaufortforLOL Bold";
+  src: url("./fonts/BeaufortforLOL-Bold.ttf");
 }
 
 @font-face {
@@ -33,4 +41,26 @@ body {
 @font-face {
   font-family: "Spiegel";
   src: url("./fonts/Spiegel_TT_Regular.ttf");
+}
+
+.league-button {
+  font-size: 16px;
+  background: #1e2328;
+  color: #cdbe91;
+  box-shadow: inset 0 0 2px #000000;
+  border: solid 2px #785a28;
+}
+
+.league-button:hover {
+  text-shadow: 0 0 5px #ffffff80;
+  box-shadow: 0 0 8px 0 #ffffff50;
+  background: linear-gradient(to bottom, #1e2328, #433d2b);
+  cursor: pointer;
+  transition: 0.1s;
+}
+
+.league-button:active {
+  text-shadow: none;
+  box-shadow: none;
+  color: #cdbe9130;
 }

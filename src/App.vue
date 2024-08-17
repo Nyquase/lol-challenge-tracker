@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
+
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
+import { faGear } from "@fortawesome/free-solid-svg-icons"
+
 import { LCUCredentials, RawChallenge } from "./types/lcu"
 import { Challenge, Champion } from "./types/lol"
+import { StoredSettings } from "./types/app"
 import {
   challengeFromCompletedIds as challengeFromRaw,
   challengeIdToMode,
@@ -13,8 +18,7 @@ import {
   ARENA_OCEAN_CHALLENGE_ID,
 } from "./constants"
 import ChallengeSection from "./components/ChallengeSection.vue"
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
-import { faRefresh } from "@fortawesome/free-solid-svg-icons"
+import Settings from "./components/Settings.vue"
 
 const credentials = ref<LCUCredentials | null>(null)
 const allChampions = ref<Champion[] | null>(null)
@@ -71,10 +75,16 @@ const tabs = computed(() => {
 })
 
 const selectedTabIndex = ref(0)
+const isColoredWhenDone = ref(false)
 
 const setTabIndex = (idx: number) => {
   selectedTabIndex.value = idx
   window.ipcRenderer.send("store-set", "tab-index", idx.toString())
+}
+
+const updateSettings = (settings: StoredSettings) => {
+  isColoredWhenDone.value = settings.isColoredWhenDone
+  window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings))
 }
 
 window.ipcRenderer.on(
@@ -86,6 +96,17 @@ window.ipcRenderer.on(
       "store-get",
       "tab-index"
     )
+
+    const storedSettings = await window.ipcRenderer.invoke(
+      "store-get",
+      "settings"
+    )
+
+    if (storedSettings) {
+      const settings: StoredSettings = JSON.parse(storedSettings)
+      isColoredWhenDone.value = settings.isColoredWhenDone
+    }
+
     if (storedTabIdx) {
       selectedTabIndex.value = Number(storedTabIdx)
     }
@@ -94,12 +115,10 @@ window.ipcRenderer.on(
 
 window.ipcRenderer.on("refetch", fetchAll)
 
-const onClickRefresh = () => {
-  if (credentials.value) {
-    fetchAll()
-  } else {
-    window.ipcRenderer.send("connect-to-lcu")
-  }
+const settingsVisible = ref(false)
+
+const onClickSettings = () => {
+  settingsVisible.value = !settingsVisible.value
 }
 </script>
 
@@ -115,26 +134,36 @@ const onClickRefresh = () => {
         {{ challenge.name }}
       </div>
     </div>
-    <button class="refresh" title="Refresh" @click="onClickRefresh">
-      <FontAwesomeIcon :icon="faRefresh" />
+    <button class="league-button settings-button" @click="onClickSettings">
+      <FontAwesomeIcon :icon="faGear" />
     </button>
     <div class="challenges" v-if="credentials && allChampions">
       <ChallengeSection
         v-if="tabs[selectedTabIndex]"
         :challenge="tabs[selectedTabIndex]"
         :all-champions="allChampions"
+        :isColoredWhenDone="isColoredWhenDone"
       />
     </div>
     <div v-else>Waiting for a client...</div>
+    <Settings
+      v-model:visible="settingsVisible"
+      :isColoredWhenDone="isColoredWhenDone"
+      @update:isColoredWhenDone="
+        (v) => updateSettings({ isColoredWhenDone: v })
+      "
+      @refetch="fetchAll"
+    />
   </div>
 </template>
 
 <style>
 .app {
-  background: linear-gradient(#091428, #0a1428);
+  background: var(--main-bg-gradient);
   border-top: solid 2px #785a28;
   position: relative;
   padding: 16px;
+  color: var(--main-text-color);
 }
 
 .tabs {
@@ -163,31 +192,14 @@ const onClickRefresh = () => {
   margin-bottom: 32px;
 }
 
-button.refresh {
-  z-index: 2;
+button.settings-button {
   position: absolute;
   right: 16px;
-  top: 16px;
+  top: 18px;
   font-size: 16px;
+  height: 40px;
+  width: 40px;
   padding: 10px;
-  background: #1e2328;
-  color: #cdbe91;
-  box-shadow: inset 0 0 2px #000000;
-  border: solid 2px #785a28;
   border-radius: 50%;
-}
-
-button.refresh:hover {
-  text-shadow: 0 0 5px #ffffff80;
-  box-shadow: 0 0 8px 0 #ffffff50;
-  background: linear-gradient(to bottom, #1e2328, #433d2b);
-  cursor: pointer;
-  transition: 0.1s;
-}
-
-button.refresh:active {
-  text-shadow: none;
-  box-shadow: none;
-  color: #cdbe9130;
 }
 </style>

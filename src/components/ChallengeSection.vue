@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { Challenge, Champion, GameMode } from "../types/lol"
+import { Challenge, Champion } from "../types/lol"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
@@ -8,6 +8,7 @@ type Filter = (typeof Filters)[number]
 const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
+  isColoredWhenDone: boolean
 }>()
 
 const championBuildLink = (champ: Champion) => {
@@ -71,7 +72,7 @@ const championsList = computed(() => {
       >
         <p class="name">{{ champ.alias }}</p>
         <img
-          :class="{ done: champ.done }"
+          :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
           :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
           :alt="champ.id"
         />
@@ -138,7 +139,7 @@ option {
   gap: 8px;
 }
 h1 {
-  font-family: "BeaufortforLol Medium";
+  font-family: "BeaufortforLol Bold";
   font-size: 2.5em;
   text-transform: uppercase;
   margin: 0;
@@ -147,7 +148,7 @@ p {
   margin: 0;
   margin-bottom: 8px;
 }
-.done {
+.greyed {
   filter: grayscale(100%) brightness(40%);
 }
 a {

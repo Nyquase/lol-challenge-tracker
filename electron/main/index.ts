@@ -18,16 +18,6 @@ interface LCUCredentials {
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// The built directory structure
-//
-// ├─┬ dist-electron
-// │ ├─┬ main
-// │ │ └── index.js    > Electron-Main
-// │ └─┬ preload
-// │   └── index.mjs   > Preload-Scripts
-// ├─┬ dist
-// │ └── index.html    > Electron-Renderer
-//
 process.env.APP_ROOT = path.join(__dirname, "../..")
 
 export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron")
@@ -125,7 +115,10 @@ function connectToLcu(win: BrowserWindow) {
   const connector = new LCUConnector()
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
-    connectWebsocket(win, credentials)
+    connectWebsocket(win, credentials).catch(() =>
+      // LCU refuses websocket connections too early, so I retry later
+      setTimeout(() => connectWebsocket(win, credentials), 5 * 60 * 1000)
+    )
   })
   connector.on("disconnect", () => sendCredentials(win, null))
   connector.start()
@@ -140,7 +133,6 @@ async function main() {
   ipcMain.on("app-ready", () => connectToLcu(win))
   ipcMain.on("connect-to-lcu", () => connectToLcu(win))
 
-  // ipcMain.on("store-set", store.set)
   ipcMain.on("store-set", (_, key, value) => {
     store.set(key, value)
   })
