@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { computed, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faGear } from "@fortawesome/free-solid-svg-icons"
 
 import { LCUCredentials, RawChallenge } from "./types/lcu"
-import { Challenge, Champion } from "./types/lol"
+import { AramStats, Challenge, Champion } from "./types/lol"
 import { StoredSettings } from "./types/app"
 import {
   challengeFromCompletedIds as challengeFromRaw,
   challengeIdToMode,
-  makeRequest,
+  makeLCURequest,
+  parseMerakiFile,
 } from "./helpers/utils"
 import {
   ARAM_CHAMPS_CHALLENGE_ID,
@@ -26,20 +27,43 @@ const arenaOcean = ref<Challenge | null>(null)
 const arenaChampion = ref<Challenge | null>(null)
 const aramChamps = ref<Challenge | null>(null)
 
-window.ipcRenderer.send("app-ready")
+const stats = ref<AramStats | null>(null)
 
-const fetchAll = async () => {
+onMounted(async () => {
+  window.ipcRenderer.send("app-ready")
+  const storedAramStats = await window.ipcRenderer.invoke(
+    "store-get",
+    "aram-stats"
+  )
+  if (storedAramStats) {
+    stats.value = JSON.parse(storedAramStats)
+  } else {
+    await fetchAramStats()
+  }
+})
+
+const fetchAramStats = async () => {
+  const res = await fetch(
+    `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json`,
+    { cache: "no-cache" }
+  )
+  const parsed = parseMerakiFile(await res.json())
+  window.ipcRenderer.send("store-set", "aram-stats", JSON.stringify(parsed))
+  stats.value = parsed
+}
+
+const fetchLCU = async () => {
   if (credentials.value === null) return
   try {
-    const champsRes = await makeRequest<Champion[]>(
+    const champsRes = await makeLCURequest<Champion[]>(
       credentials.value,
       "/lol-champions/v1/owned-champions-minimal"
     )
 
-    const allChamps = champsRes.sort((a, b) => a.alias.localeCompare(b.alias))
+    const allChamps = champsRes.sort((a, b) => a.name.localeCompare(b.name))
     allChampions.value = allChamps
 
-    const allChallenges: Record<string, RawChallenge> = await makeRequest(
+    const allChallenges: Record<string, RawChallenge> = await makeLCURequest(
       credentials.value,
       "/lol-challenges/v1/challenges/local-player"
     )
@@ -93,7 +117,7 @@ window.ipcRenderer.on(
   "credentials",
   async (_event, newCredentials: LCUCredentials) => {
     credentials.value = newCredentials
-    await fetchAll()
+    await fetchLCU()
     const storedTabIdx = await window.ipcRenderer.invoke(
       "store-get",
       "tab-index"
@@ -115,7 +139,7 @@ window.ipcRenderer.on(
   }
 )
 
-window.ipcRenderer.on("refetch", fetchAll)
+window.ipcRenderer.on("refetch", fetchLCU)
 
 const settingsVisible = ref(false)
 
@@ -145,6 +169,7 @@ const onClickSettings = () => {
         :challenge="tabs[selectedTabIndex]"
         :all-champions="allChampions"
         :isColoredWhenDone="isColoredWhenDone"
+        :stats="stats"
       />
     </div>
     <div v-else>Waiting for a client...</div>
@@ -154,7 +179,8 @@ const onClickSettings = () => {
       @update:isColoredWhenDone="
         (v) => updateSettings({ isColoredWhenDone: v })
       "
-      @refetch="fetchAll"
+      @refetch="fetchLCU"
+      @refetch-aram-stats="fetchAramStats"
     />
   </div>
 </template>

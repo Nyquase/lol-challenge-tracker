@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faClose } from "@fortawesome/free-solid-svg-icons"
 import { faGithub } from "@fortawesome/free-brands-svg-icons"
 
-const emit = defineEmits(["refetch"])
+const emit = defineEmits(["refetch", "refetch-aram-stats"])
 
 const visible = defineModel<boolean>("visible", { required: true })
 const isColoredWhenDone = defineModel<boolean>("isColoredWhenDone", {
@@ -24,6 +24,10 @@ const isColoredWhenDone = defineModel<boolean>("isColoredWhenDone", {
     <div class="container">
       <button class="league-button refresh" @click="emit('refetch')">
         Refresh challenges
+      </button>
+
+      <button class="league-button refresh" @click="emit('refetch-aram-stats')">
+        Refresh ARAM stats
       </button>
 
       <button
