@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { Challenge, Champion } from "../types/lol"
+import { AramStats, Challenge, Champion, Stat } from "../types/lol"
+import AramStatBox from "./AramStatBox.vue"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
@@ -9,6 +10,7 @@ const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
   isColoredWhenDone: boolean
+  stats: AramStats | null
 }>()
 
 const championBuildLink = (champ: Champion) => {
@@ -20,6 +22,7 @@ const championBuildLink = (champ: Champion) => {
   }
 }
 
+const showAramStats = ref(false)
 const filter = ref<Filter>("All")
 const search = ref<string>("")
 
@@ -39,7 +42,7 @@ const championsList = computed(() => {
 
   if (search.value) {
     return list.filter((c) =>
-      c.alias.toLocaleLowerCase().includes(search.value.toLowerCase())
+      c.name.toLocaleLowerCase().includes(search.value.toLowerCase())
     )
   }
 
@@ -55,12 +58,21 @@ const championsList = computed(() => {
         {{ allChampions.length }})
       </h1>
       <div class="filters">
+        <div v-if="challenge.mode === 'Aram'" class="stats-checkbox">
+          <input type="checkbox" id="show-stats" v-model="showAramStats" />
+          <label for="show-stats">Show ARAM balance changes</label>
+        </div>
         <select v-model="filter">
           <option v-for="filter in Filters" :value="filter">
             {{ filter }}
           </option>
         </select>
-        <input v-model="search" type="search" placeholder="Search" />
+        <input
+          class="search"
+          v-model="search"
+          type="search"
+          placeholder="Search"
+        />
       </div>
     </div>
     <p>{{ challenge.description }}</p>
@@ -70,11 +82,15 @@ const championsList = computed(() => {
         :href="championBuildLink(champ)"
         target="_blank"
       >
-        <p class="name">{{ champ.alias }}</p>
+        <p class="name">{{ champ.name }}</p>
         <img
           :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
           :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
           :alt="champ.id"
+        />
+        <AramStatBox
+          v-if="stats && showAramStats && stats[champ.alias]"
+          :stats="stats[champ.alias]"
         />
       </a>
     </div>
@@ -92,8 +108,19 @@ const championsList = computed(() => {
   display: flex;
 }
 
+.stats-checkbox {
+  display: flex;
+  align-items: center;
+}
+.stats-checkbox input {
+  height: 16px;
+  width: 16px;
+  accent-color: #0ac8b9;
+  margin-right: 8px;
+}
+
 select,
-input {
+input.search {
   margin-left: 32px;
   font-family: "Spiegel";
   font-size: 15px;

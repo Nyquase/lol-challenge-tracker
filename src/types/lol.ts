@@ -1,6 +1,7 @@
 export interface Champion {
   id: string
   alias: string
+  name: string
 }
 
 export interface Challenge {
@@ -12,3 +13,23 @@ export interface Challenge {
 }
 
 export type GameMode = "Arena" | "Aram"
+
+export interface Stat {
+  flat: number
+  percent: number
+  perLevel: number
+  percentPerLevel: number
+}
+
+export interface ChampionStats {
+  aramAbilityHaste: number
+  aramAttackSpeed: number
+  aramDamageDealt: number
+  aramDamageTaken: number
+  aramEnergyRegen: number
+  aramHealing: number
+  aramShielding: number
+  aramTenacity: number
+}
+
+export type AramStats = Record<string, ChampionStats>
