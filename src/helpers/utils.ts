@@ -1,8 +1,3 @@
-import {
-  ARAM_CHAMPS_CHALLENGE_ID,
-  ARENA_CHAMPION_CHALLENGE_ID,
-  ARENA_OCEAN_CHALLENGE_ID,
-} from "../constants"
 import { LCUCredentials, RawChallenge } from "../types/lcu"
 import { AramStats, Challenge, Champion, GameMode, Stat } from "../types/lol"
 
@@ -63,10 +58,4 @@ export function challengeFromCompletedIds(
     totalDone: raw.completedIds.length,
     mode,
   }
-}
-
-export const challengeIdToMode: Record<string, GameMode> = {
-  [ARENA_OCEAN_CHALLENGE_ID]: "Arena",
-  [ARENA_CHAMPION_CHALLENGE_ID]: "Arena",
-  [ARAM_CHAMPS_CHALLENGE_ID]: "Aram",
 }

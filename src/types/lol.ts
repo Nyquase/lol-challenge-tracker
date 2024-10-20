@@ -12,7 +12,7 @@ export interface Challenge {
   totalDone: number
 }
 
-export type GameMode = "Arena" | "Aram"
+export type GameMode = "Arena" | "Aram" | "Rift"
 
 export interface Stat {
   flat: number

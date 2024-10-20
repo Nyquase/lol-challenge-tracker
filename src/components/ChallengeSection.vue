@@ -19,6 +19,8 @@ const championBuildLink = (champ: Champion) => {
       return `https://www.op.gg/modes/arena/${champ.alias.toLowerCase()}/build?region=global`
     case "Aram":
       return `https://aram.zone/champion/${champ.alias.toLowerCase()}`
+    case "Rift":
+      return `https://u.gg/lol/champions/${champ.alias.toLowerCase()}/build`
   }
 }
 
@@ -58,13 +60,17 @@ const championsList = computed(() => {
         {{ allChampions.length }})
       </h1>
       <div class="filters">
-        <select v-model="filter">
-          <option v-for="filter in Filters" :value="filter">
-            {{ filter }}
+        <select class="league-select" v-model="filter">
+          <option
+            :class="{ selected: filter === f }"
+            v-for="f in Filters"
+            :value="f"
+          >
+            {{ f }}
           </option>
         </select>
         <input
-          class="search"
+          class="league-input search"
           v-model="search"
           type="search"
           placeholder="Search"
@@ -92,7 +98,12 @@ const championsList = computed(() => {
           :alt="champ.id"
         />
         <AramStatBox
-          v-if="stats && showAramStats && stats[champ.alias]"
+          v-if="
+            challenge.mode === 'Aram' &&
+            stats &&
+            showAramStats &&
+            stats[champ.alias]
+          "
           :stats="stats[champ.alias]"
         />
       </a>
@@ -135,42 +146,6 @@ const championsList = computed(() => {
 select,
 input.search {
   margin-left: 32px;
-  font-family: "Spiegel";
-  font-size: 15px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  padding: 8px 16px;
-  background: #1e2328;
-  color: #cdbe91;
-  box-shadow: inset 0 0 2px #000000;
-  border-image: linear-gradient(to bottom, #c8aa6d, #7a5c29);
-  border-image-slice: 1;
-  border-width: 2px;
-}
-
-input::-webkit-search-cancel-button {
-  cursor: pointer;
-}
-
-input.search:focus {
-  outline: none;
-  box-shadow: 0 0 8px 0 #ffffff50;
-}
-
-select:hover {
-  text-shadow: 0 0 5px #ffffff80;
-  background: linear-gradient(to bottom, #1e2328, #433d2b);
-  cursor: pointer;
-  transition: 0.1s;
-}
-
-option {
-  font-family: "Spiegel";
-  font-size: 15px;
-  letter-spacing: 1px;
-  padding: 8px 16px;
-  background: #1e2328;
-  color: #cdbe91;
 }
 
 .champion-icons {

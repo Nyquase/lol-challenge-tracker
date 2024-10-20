@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue"
+import { onMounted, ref } from "vue"
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faGear } from "@fortawesome/free-solid-svg-icons"
@@ -9,23 +9,17 @@ import { AramStats, Challenge, Champion } from "./types/lol"
 import { StoredSettings } from "./types/app"
 import {
   challengeFromCompletedIds as challengeFromRaw,
-  challengeIdToMode,
   makeLCURequest,
   parseMerakiFile,
 } from "./helpers/utils"
-import {
-  ARAM_CHAMPS_CHALLENGE_ID,
-  ARENA_CHAMPION_CHALLENGE_ID,
-  ARENA_OCEAN_CHALLENGE_ID,
-} from "./constants"
+import { challengeWithCompletion } from "./constants"
 import ChallengeSection from "./components/ChallengeSection.vue"
 import Settings from "./components/Settings.vue"
 
 const credentials = ref<LCUCredentials | null>(null)
 const allChampions = ref<Champion[] | null>(null)
-const arenaOcean = ref<Challenge | null>(null)
-const arenaChampion = ref<Challenge | null>(null)
-const aramChamps = ref<Challenge | null>(null)
+
+const challenges = ref<Challenge[]>([])
 
 const stats = ref<AramStats | null>(null)
 
@@ -68,44 +62,19 @@ const fetchLCU = async () => {
       "/lol-challenges/v1/challenges/local-player"
     )
 
-    arenaOcean.value = challengeFromRaw(
-      allChallenges[ARENA_OCEAN_CHALLENGE_ID],
-      allChamps,
-      challengeIdToMode[ARENA_OCEAN_CHALLENGE_ID]
-    )
-
-    arenaChampion.value = challengeFromRaw(
-      allChallenges[ARENA_CHAMPION_CHALLENGE_ID],
-      allChamps,
-      challengeIdToMode[ARENA_CHAMPION_CHALLENGE_ID]
-    )
-
-    aramChamps.value = challengeFromRaw(
-      allChallenges[ARAM_CHAMPS_CHALLENGE_ID],
-      allChamps,
-      challengeIdToMode[ARAM_CHAMPS_CHALLENGE_ID]
+    challenges.value = challengeWithCompletion.map((c) =>
+      challengeFromRaw(allChallenges[c.id], allChamps, c.gameMode)
     )
   } catch (e) {}
 }
 
-const tabs = computed(() => {
-  if (
-    allChampions.value &&
-    arenaOcean.value &&
-    arenaChampion.value &&
-    aramChamps.value
-  ) {
-    return [arenaOcean.value, arenaChampion.value, aramChamps.value]
-  }
-  return []
-})
-
-const selectedTabIndex = ref(0)
+const selectedChallengeIndex = ref(0)
 const isColoredWhenDone = ref(false)
 
-const setTabIndex = (idx: number) => {
-  selectedTabIndex.value = idx
-  window.ipcRenderer.send("store-set", "tab-index", idx.toString())
+const setSelectedChallengeIndex = (e: any) => {
+  const idx = e.target.value
+  selectedChallengeIndex.value = Number(idx)
+  window.ipcRenderer.send("store-set", "selected-challenge-index", idx)
 }
 
 const updateSettings = (settings: StoredSettings) => {
@@ -118,9 +87,9 @@ window.ipcRenderer.on(
   async (_event, newCredentials: LCUCredentials) => {
     credentials.value = newCredentials
     await fetchLCU()
-    const storedTabIdx = await window.ipcRenderer.invoke(
+    const storedSelectedChallengeIdx = await window.ipcRenderer.invoke(
       "store-get",
-      "tab-index"
+      "selected-challenge-index"
     )
 
     const storedSettings = await window.ipcRenderer.invoke(
@@ -133,8 +102,8 @@ window.ipcRenderer.on(
       isColoredWhenDone.value = settings.isColoredWhenDone
     }
 
-    if (storedTabIdx) {
-      selectedTabIndex.value = Number(storedTabIdx)
+    if (storedSelectedChallengeIdx) {
+      selectedChallengeIndex.value = Number(storedSelectedChallengeIdx)
     }
   }
 )
@@ -150,29 +119,34 @@ const onClickSettings = () => {
 
 <template>
   <div class="app">
-    <div class="tabs">
-      <div
-        v-for="(challenge, idx) in tabs"
-        @click="setTabIndex(idx)"
-        class="tab"
-        :class="{ selected: selectedTabIndex === idx }"
+    <div class="heading">
+      <select
+        class="league-select"
+        :value="selectedChallengeIndex"
+        @change="setSelectedChallengeIndex"
       >
-        {{ challenge.name }}
-      </div>
+        <option
+          :class="{ selected: selectedChallengeIndex === idx }"
+          v-for="(challenge, idx) in challenges"
+          :value="idx"
+        >
+          {{ challenge.name }}
+        </option>
+      </select>
     </div>
     <button class="league-button settings-button" @click="onClickSettings">
       <FontAwesomeIcon :icon="faGear" />
     </button>
     <div class="challenges" v-if="credentials && allChampions">
       <ChallengeSection
-        v-if="tabs[selectedTabIndex]"
-        :challenge="tabs[selectedTabIndex]"
+        v-if="challenges[selectedChallengeIndex]"
+        :challenge="challenges[selectedChallengeIndex]"
         :all-champions="allChampions"
         :isColoredWhenDone="isColoredWhenDone"
         :stats="stats"
       />
     </div>
-    <div v-else>Waiting for a client...</div>
+    <div v-else>Waiting for a League client...</div>
     <Settings
       v-model:visible="settingsVisible"
       :isColoredWhenDone="isColoredWhenDone"
@@ -194,7 +168,7 @@ const onClickSettings = () => {
   color: var(--main-text-color);
 }
 
-.tabs {
+.heading {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
