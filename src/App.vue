@@ -70,6 +70,7 @@ const fetchLCU = async () => {
 
 const selectedChallengeIndex = ref(0)
 const isColoredWhenDone = ref(false)
+const showChampionNames = ref(false)
 
 const setSelectedChallengeIndex = (e: any) => {
   const idx = e.target.value
@@ -79,6 +80,7 @@ const setSelectedChallengeIndex = (e: any) => {
 
 const updateSettings = (settings: StoredSettings) => {
   isColoredWhenDone.value = settings.isColoredWhenDone
+  showChampionNames.value = settings.showChampionNames
   window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings))
 }
 
@@ -100,6 +102,7 @@ window.ipcRenderer.on(
     if (storedSettings) {
       const settings: StoredSettings = JSON.parse(storedSettings)
       isColoredWhenDone.value = settings.isColoredWhenDone
+      showChampionNames.value = settings.showChampionNames
     }
 
     if (storedSelectedChallengeIdx) {
@@ -143,6 +146,7 @@ const onClickSettings = () => {
         :challenge="challenges[selectedChallengeIndex]"
         :all-champions="allChampions"
         :isColoredWhenDone="isColoredWhenDone"
+        :showChampionNames="showChampionNames"
         :stats="stats"
       />
     </div>
@@ -150,8 +154,12 @@ const onClickSettings = () => {
     <Settings
       v-model:visible="settingsVisible"
       :isColoredWhenDone="isColoredWhenDone"
+      :showChampionNames="showChampionNames"
       @update:isColoredWhenDone="
-        (v) => updateSettings({ isColoredWhenDone: v })
+        (v) => updateSettings({ isColoredWhenDone: v, showChampionNames: showChampionNames })
+      "
+      @update:showChampionNames="
+        (v) => updateSettings({ isColoredWhenDone: isColoredWhenDone, showChampionNames: v })
       "
       @refetch="fetchLCU"
       @refetch-aram-stats="fetchAramStats"

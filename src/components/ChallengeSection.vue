@@ -10,6 +10,7 @@ const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
   isColoredWhenDone: boolean
+  showChampionNames: boolean
   stats: AramStats | null
 }>()
 
@@ -91,7 +92,7 @@ const championsList = computed(() => {
         :href="championBuildLink(champ)"
         target="_blank"
       >
-        <p class="name">{{ champ.name }}</p>
+        <p class="name" v-if="showChampionNames">{{ champ.name }}</p>
         <img
           :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
           :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
@@ -177,15 +178,16 @@ a:hover {
   filter: brightness(150%);
 }
 .name {
-  display: none;
+  display: block;
   position: absolute;
-  top: 50%;
+  top: 15%;
   left: 50%;
   background-color: rgba(0, 0, 0, 0.8);
   padding: 4px;
   transform: translate(-50%, -50%);
-  color: #c8aa6e;
+  color: white;
   z-index: 1;
+  white-space: nowrap;
 }
 a img {
   position: relative;
