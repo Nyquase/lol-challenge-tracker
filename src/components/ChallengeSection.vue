@@ -99,7 +99,6 @@ const championsList = computed(() => {
             :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
             target="_blank"
           >
-            <p v-if="selectedChamp" class="name">{{ selectedChamp.name }}</p>
             <img
               v-if="selectedChamp"
               :class="{
