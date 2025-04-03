@@ -2,7 +2,10 @@ export interface Champion {
   id: string
   alias: string
   name: string
+  type: ChampionType
 }
+
+export type ChampionType = "Assassin" | "Fighter" | "Mage" | "Marksman" | "Support" | "Tank"
 
 export interface Challenge {
   name: string
