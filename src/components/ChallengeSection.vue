@@ -4,6 +4,7 @@ import { AramStats, Challenge, Champion } from "../types/lol"
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faCheck } from "@fortawesome/free-solid-svg-icons"
 import AramStatBox from "./AramStatBox.vue"
+import LeagueDropdown from "./LeagueDropdown.vue"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
@@ -54,6 +55,13 @@ const championsList = computed(() => {
 
   return list
 })
+
+const filterOptions = computed(() => {
+  return Filters.map(filter => ({
+    name: filter,
+    value: filter
+  }));
+});
 </script>
 
 <template>
@@ -64,15 +72,10 @@ const championsList = computed(() => {
         {{ allChampions.length }})
       </h1>
       <div class="filters">
-        <select class="league-select" v-model="filter">
-          <option
-            :class="{ selected: filter === f }"
-            v-for="f in Filters"
-            :value="f"
-          >
-            {{ f }}
-          </option>
-        </select>
+        <LeagueDropdown
+          v-model="filter"
+          :options="filterOptions"
+        />
         <input
           class="league-input search"
           v-model="search"
@@ -175,6 +178,7 @@ const championsList = computed(() => {
 
 .filters {
   display: flex;
+  align-items: center;
 }
 
 .stats-checkbox {

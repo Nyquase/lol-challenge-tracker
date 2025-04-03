@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
+import { onMounted, ref, computed } from "vue"
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faGear } from "@fortawesome/free-solid-svg-icons"
@@ -15,6 +15,7 @@ import {
 import { challengeWithCompletion } from "./constants"
 import ChallengeSection from "./components/ChallengeSection.vue"
 import Settings from "./components/Settings.vue"
+import LeagueDropdown from "./components/LeagueDropdown.vue"
 
 const credentials = ref<LCUCredentials | null>(null)
 const allChampions = ref<Champion[] | null>(null)
@@ -137,23 +138,30 @@ const settingsVisible = ref(false)
 const onClickSettings = () => {
   settingsVisible.value = !settingsVisible.value
 }
+
+const challengeOptions = computed(() => {
+  return challenges.value.map((challenge, idx) => ({
+    name: challenge.name,
+    value: idx
+  }));
+});
 </script>
 
 <template>
   <div class="app">
     <div class="app-heading">
+      <LeagueDropdown 
+        v-if="challenges.length > 0"
+        v-model="selectedChallengeIndex" 
+        :options="challengeOptions"
+      />
       <select
+        v-else
         class="league-select"
         :value="selectedChallengeIndex"
         @change="setSelectedChallengeIndex"
       >
-        <option
-          :class="{ selected: selectedChallengeIndex === idx }"
-          v-for="(challenge, idx) in challenges"
-          :value="idx"
-        >
-          {{ challenge.name }}
-        </option>
+        <option>Loading challenges...</option>
       </select>
     </div>
     <button class="league-button settings-button" @click="onClickSettings">
@@ -200,6 +208,78 @@ const onClickSettings = () => {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  position: relative;
+  width: 300px;
+}
+
+/* Remove this arrow style since we have it in the LeagueDropdown component */
+.app-heading::after {
+  display: none; /* Hide this arrow when using the custom dropdown */
+}
+
+.app-heading .league-select {
+  width: 100%;
+  appearance: none;
+  padding: 12px 40px 12px 16px;
+  background: linear-gradient(to bottom, #1e2328 0%, #433d2b 100%);
+  border: 2px solid;
+  border-image: linear-gradient(to bottom, #c8aa6d, #7a5c29);
+  border-image-slice: 1;
+  color: #cdbe91;
+  font-family: "BeaufortforLOL Bold", serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.app-heading .league-select:hover {
+  box-shadow: 0 0 10px #c8aa6d80;
+  text-shadow: 0 0 5px #ffffff80;
+}
+
+.app-heading .league-select:focus {
+  outline: none;
+  box-shadow: 0 0 15px #c8aa6d80;
+}
+
+.app-heading .league-select option {
+  padding: 12px 16px;
+  background: #1e2328;
+  color: #cdbe91;
+  font-family: "BeaufortforLOL", serif;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #3c3c41;
+}
+
+.app-heading .league-select option:hover,
+.app-heading .league-select option:focus {
+  background: #2a2f36;
+  box-shadow: 0 0 10px #c8aa6d80;
+}
+
+.app-heading .league-select option.selected {
+  background: #293547;
+  color: #0ac8b9;
+  font-weight: bold;
+}
+
+/* For webkit browsers to improve dropdown styling */
+select::-webkit-scrollbar {
+  width: 10px;
+  background-color: #1e2328;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: #785a28;
+  border-radius: 4px;
+}
+
+select::-webkit-scrollbar-track {
+  background: #1e2328;
+  border-radius: 4px;
 }
 
 .tab {
