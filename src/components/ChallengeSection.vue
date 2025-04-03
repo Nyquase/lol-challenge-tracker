@@ -1,10 +1,31 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { AramStats, Challenge, Champion, Stat } from "../types/lol"
+import { AramStats, Challenge, Champion, ChampionType, Stat } from "../types/lol"
 import AramStatBox from "./AramStatBox.vue"
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
+import { 
+  faUserNinja, 
+  faFistRaised, 
+  faHatWizard, 
+  faCrosshairs, 
+  faHandHoldingHeart, 
+  faShieldAlt 
+} from "@fortawesome/free-solid-svg-icons"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
+
+const ChampionTypes = ["Assassin", "Fighter", "Mage", "Marksman", "Support", "Tank"] as const
+type TypeFilter = (typeof ChampionTypes)[number]
+
+const typeIcons = {
+  "Assassin": faUserNinja,
+  "Fighter": faFistRaised,
+  "Mage": faHatWizard,
+  "Marksman": faCrosshairs,
+  "Support": faHandHoldingHeart,
+  "Tank": faShieldAlt
+}
 
 const props = defineProps<{
   challenge: Challenge
@@ -27,7 +48,16 @@ const championBuildLink = (champ: Champion) => {
 
 const showAramStats = ref(false)
 const filter = ref<Filter>("All")
+const selectedTypes = ref<Set<TypeFilter>>(new Set())
 const search = ref<string>("")
+
+const toggleType = (type: TypeFilter) => {
+  if (selectedTypes.value.has(type)) {
+    selectedTypes.value.delete(type)
+  } else {
+    selectedTypes.value.add(type)
+  }
+}
 
 const championsList = computed(() => {
   let list = props.challenge.champions
@@ -41,6 +71,10 @@ const championsList = computed(() => {
     case "Not Done":
       list = props.challenge.champions.filter((c) => !c.done)
       break
+  }
+
+  if (selectedTypes.value.size > 0) {
+    list = list.filter((c) => selectedTypes.value.has(c.type))
   }
 
   if (search.value) {
@@ -86,6 +120,22 @@ const championsList = computed(() => {
         <label for="show-stats">Show ARAM balance changes</label>
       </div>
     </div>
+    
+    <div class="type-filters-container">
+      <div class="type-filters">
+        <button 
+          v-for="type in ChampionTypes" 
+          :key="type"
+          class="league-button type-button"
+          :class="{ active: selectedTypes.has(type) }"
+          @click="toggleType(type)"
+        >
+          <FontAwesomeIcon :icon="typeIcons[type]" />
+          <span>{{ type }}</span>
+        </button>
+      </div>
+    </div>
+    
     <div class="champion-icons">
       <a
         v-for="champ in championsList"
@@ -126,6 +176,32 @@ const championsList = computed(() => {
 
 .filters {
   display: flex;
+  gap: 8px;
+}
+
+.type-filters-container {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.type-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.type-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.type-button.active {
+  background: linear-gradient(to bottom, #433d2b, #1e2328);
+  color: #0ac8b9;
 }
 
 .stats-checkbox {
