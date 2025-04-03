@@ -9,6 +9,9 @@ const visible = defineModel<boolean>("visible", { required: true })
 const isColoredWhenDone = defineModel<boolean>("isColoredWhenDone", {
   required: true,
 })
+const showChampionNames = defineModel<boolean>("showChampionNames", {
+  required: true,
+})
 </script>
 
 <template>
@@ -35,6 +38,13 @@ const isColoredWhenDone = defineModel<boolean>("isColoredWhenDone", {
         @click="isColoredWhenDone = !isColoredWhenDone"
       >
         Completed champions are {{ isColoredWhenDone ? "colored" : "greyed" }}
+      </button>
+
+      <button
+        class="league-button view-mode"
+        @click="showChampionNames = !showChampionNames"
+      >
+        {{ showChampionNames ? "Hide" : "Show" }} champion names
       </button>
     </div>
 
@@ -111,7 +121,6 @@ button {
 
 .about {
   color: #0397ab;
-  /* text-decoration: none; */
 }
 .about-icon {
   font-size: 22px;
