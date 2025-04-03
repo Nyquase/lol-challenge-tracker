@@ -202,6 +202,21 @@ input.search {
   margin-left: 32px;
 }
 
+input.search::-webkit-search-cancel-button {
+  position: relative;
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23cdbe91'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>");
+  cursor: pointer;
+  margin-right: 4px;
+  padding: 5px;
+}
+
+input.search::-webkit-search-cancel-button:hover {
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f0e6d2'><path d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/></svg>");
+}
+
 .selected-champ-container {
   display: flex;
   margin-bottom: 16px;
