@@ -6,6 +6,11 @@ import os from "node:os"
 import LCUConnector from "lcu-connector"
 import { WebSocket } from "ws"
 import Store from "electron-store"
+import {
+  ChampSelectSessionEvent,
+  LCUEventMessage,
+  LCUEvents,
+} from "./interface.js"
 
 interface LCUCredentials {
   address: string
@@ -86,6 +91,22 @@ function sendCredentials(win: BrowserWindow, credentials: LCUCredentials) {
   win.webContents.send("credentials", credentials)
 }
 
+function parseSessionEvent(event: ChampSelectSessionEvent) {
+  return event.actions
+    .flat()
+    .find(
+      (a) =>
+        a.isAllyAction === true &&
+        a.type === "pick" &&
+        a.actorCellId === event.localPlayerCellId
+    )?.championId
+}
+
+function parseEventMessage(message: string) {
+  const [_, type, payload] = JSON.parse(message) as [number, LCUEvents, any]
+  return { type, data: payload.data }
+}
+
 async function connectWebsocket(
   win: BrowserWindow,
   credentials: LCUCredentials
@@ -102,12 +123,29 @@ async function connectWebsocket(
     rejectUnauthorized: false,
   })
 
-  ws.on("message", () => {
-    win.webContents.send("refetch")
+  ws.on("message", (e) => {
+    const event: LCUEventMessage = parseEventMessage(e.toString())
+    switch (event.type) {
+      case LCUEvents.EndOfGameStats:
+        win.webContents.send("end-of-game")
+        break
+      case LCUEvents.ChampSelectSession:
+        console.log(JSON.stringify(event.data, null, 4))
+        if (event.data.localPlayerCellId === -1)
+          win.webContents.send("pick", null)
+        const champId = parseSessionEvent(event.data)
+        if (champId) {
+          win.webContents.send("pick", champId)
+        }
+        break
+    }
   })
 
+  // https://github.com/dysolix/hasagi-types/blob/main/dist/lcu-events.d.ts
   ws.on("open", () => {
-    ws.send('[5, "OnJsonApiEvent_lol-end-of-game_v1_eog-stats-block"]')
+    // 5 Means Subscribe
+    ws.send(`[5, "${LCUEvents.EndOfGameStats}"]`)
+    ws.send(`[5, "${LCUEvents.ChampSelectSession}"]`)
   })
 }
 

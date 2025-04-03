@@ -23,6 +23,8 @@ const challenges = ref<Challenge[]>([])
 
 const stats = ref<AramStats | null>(null)
 
+const selectedChamp = ref<Challenge["champions"][number] | null>(null)
+
 onMounted(async () => {
   window.ipcRenderer.send("app-ready")
   const storedAramStats = await window.ipcRenderer.invoke(
@@ -82,6 +84,23 @@ const updateSettings = (settings: StoredSettings) => {
   window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings))
 }
 
+window.ipcRenderer.on("end-of-game", () => {
+  selectedChamp.value = null
+  fetchLCU()
+})
+
+window.ipcRenderer.on("pick", async (_event, champId: string | null) => {
+  if (champId === null) {
+    selectedChamp.value = null
+  }
+  const champ = challenges.value[selectedChallengeIndex.value]?.champions.find(
+    (c) => c.id === champId
+  )
+  if (champ) {
+    selectedChamp.value = champ
+  }
+})
+
 window.ipcRenderer.on(
   "credentials",
   async (_event, newCredentials: LCUCredentials) => {
@@ -119,7 +138,7 @@ const onClickSettings = () => {
 
 <template>
   <div class="app">
-    <div class="heading">
+    <div class="app-heading">
       <select
         class="league-select"
         :value="selectedChallengeIndex"
@@ -142,6 +161,7 @@ const onClickSettings = () => {
         v-if="challenges[selectedChallengeIndex]"
         :challenge="challenges[selectedChallengeIndex]"
         :all-champions="allChampions"
+        :selectedChamp="selectedChamp"
         :isColoredWhenDone="isColoredWhenDone"
         :stats="stats"
       />
@@ -168,7 +188,7 @@ const onClickSettings = () => {
   color: var(--main-text-color);
 }
 
-.heading {
+.app-heading {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;

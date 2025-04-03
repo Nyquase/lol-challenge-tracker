@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { AramStats, Challenge, Champion, Stat } from "../types/lol"
+import { AramStats, Challenge, Champion } from "../types/lol"
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
+import { faCheck } from "@fortawesome/free-solid-svg-icons"
 import AramStatBox from "./AramStatBox.vue"
 
 const Filters = ["All", "Not Done", "Done"] as const
@@ -9,6 +11,7 @@ type Filter = (typeof Filters)[number]
 const props = defineProps<{
   challenge: Challenge
   allChampions: Champion[]
+  selectedChamp: Challenge["champions"][number] | null
   isColoredWhenDone: boolean
   stats: AramStats | null
 }>()
@@ -77,6 +80,7 @@ const championsList = computed(() => {
         />
       </div>
     </div>
+
     <div class="description-container">
       <p>{{ challenge.description }}</p>
 
@@ -85,7 +89,48 @@ const championsList = computed(() => {
         <label for="show-stats">Show ARAM balance changes</label>
       </div>
     </div>
-    <div class="champion-icons">
+
+    <div class="selected-champ-container">
+      <div>
+        <div class="selected-champ-text">Selected</div>
+        <a
+          :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
+          target="_blank"
+        >
+          <p v-if="selectedChamp" class="name">{{ selectedChamp.name }}</p>
+          <img
+            v-if="selectedChamp"
+            :class="{
+              greyed: isColoredWhenDone
+                ? selectedChamp.done
+                : !selectedChamp.done,
+            }"
+            :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${selectedChamp.id}.png`"
+            :alt="selectedChamp.id"
+          />
+          <img
+            v-else
+            :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/-1.png`"
+            alt="-1"
+          />
+          <div v-if="selectedChamp && selectedChamp.done" class="check-mark">
+            <FontAwesomeIcon :icon="faCheck" />
+          </div>
+          <AramStatBox
+            v-if="
+              selectedChamp &&
+              challenge.mode === 'Aram' &&
+              stats &&
+              showAramStats &&
+              stats[selectedChamp.alias]
+            "
+            :stats="stats[selectedChamp.alias]"
+          />
+        </a>
+      </div>
+    </div>
+
+    <div class="champions-container">
       <a
         v-for="champ in championsList"
         :href="championBuildLink(champ)"
@@ -97,6 +142,9 @@ const championsList = computed(() => {
           :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
           :alt="champ.id"
         />
+        <div v-if="champ.done" class="check-mark">
+          <FontAwesomeIcon :icon="faCheck" />
+        </div>
         <AramStatBox
           v-if="
             challenge.mode === 'Aram' &&
@@ -148,7 +196,12 @@ input.search {
   margin-left: 32px;
 }
 
-.champion-icons {
+.selected-champ-container {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.champions-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -164,12 +217,11 @@ p {
   margin-bottom: 8px;
 }
 .greyed {
-  filter: grayscale(100%) brightness(40%);
+  filter: brightness(30%);
 }
 a {
   display: block;
-  height: 120px;
-  width: 120px;
+  line-height: 0;
   position: relative;
   text-align: center;
 }
@@ -179,6 +231,7 @@ a:hover {
 .name {
   display: none;
   position: absolute;
+  line-height: 1;
   top: 50%;
   left: 50%;
   background-color: rgba(0, 0, 0, 0.8);
@@ -187,8 +240,25 @@ a:hover {
   color: #c8aa6e;
   z-index: 1;
 }
+
+.check-mark {
+  position: absolute;
+  z-index: 1;
+  top: -8px;
+  right: -8px;
+  background-color: #0ac8b9;
+  border-radius: 50%;
+  border: 2px solid black;
+  padding: 4px;
+  font-size: 14px;
+  color: black;
+  font-weight: bold;
+}
+
 a img {
   position: relative;
+  height: 128px;
+  width: 128px;
 }
 a:hover .name {
   display: initial;
