@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
+import { onMounted, ref, computed } from "vue"
 
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faGear } from "@fortawesome/free-solid-svg-icons"
@@ -15,6 +15,7 @@ import {
 import { challengeWithCompletion } from "./constants"
 import ChallengeSection from "./components/ChallengeSection.vue"
 import Settings from "./components/Settings.vue"
+import LeagueDropdown from "./components/LeagueDropdown.vue"
 
 const credentials = ref<LCUCredentials | null>(null)
 const allChampions = ref<Champion[] | null>(null)
@@ -137,24 +138,23 @@ const settingsVisible = ref(false)
 const onClickSettings = () => {
   settingsVisible.value = !settingsVisible.value
 }
+
+const challengeOptions = computed(() => {
+  return challenges.value.map((challenge, idx) => ({
+    name: challenge.name,
+    value: idx,
+  }))
+})
 </script>
 
 <template>
   <div class="app">
     <div class="app-heading">
-      <select
-        class="league-select"
-        :value="selectedChallengeIndex"
-        @change="setSelectedChallengeIndex"
-      >
-        <option
-          :class="{ selected: selectedChallengeIndex === idx }"
-          v-for="(challenge, idx) in challenges"
-          :value="idx"
-        >
-          {{ challenge.name }}
-        </option>
-      </select>
+      <LeagueDropdown
+        v-if="challengeOptions.length > 0"
+        v-model="selectedChallengeIndex"
+        :options="challengeOptions"
+      />
     </div>
     <button class="league-button settings-button" @click="onClickSettings">
       <FontAwesomeIcon :icon="faGear" />
@@ -200,6 +200,8 @@ const onClickSettings = () => {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  position: relative;
+  width: 300px;
 }
 
 .tab {
