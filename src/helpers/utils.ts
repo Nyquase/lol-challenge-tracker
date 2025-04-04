@@ -1,5 +1,6 @@
 import { LCUCredentials, RawChallenge } from "../types/lcu"
 import { AramStats, Challenge, Champion, GameMode, Stat } from "../types/lol"
+import { championTypes } from "../constants/championTypes"
 
 export async function makeLCURequest<T = any>(
   credentials: LCUCredentials,
@@ -53,6 +54,7 @@ export function challengeFromCompletedIds(
     description: raw.description,
     champions: allChamps.map((c) => ({
       ...c,
+      type: championTypes[c.name] || "Fighter",
       done: raw.completedIds.includes(c.id),
     })),
     totalDone: raw.completedIds.length,

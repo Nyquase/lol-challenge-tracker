@@ -1,12 +1,39 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import { AramStats, Challenge, Champion } from "../types/lol"
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
-import { faCheck } from "@fortawesome/free-solid-svg-icons"
 import AramStatBox from "./AramStatBox.vue"
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
+import {
+  faUserNinja,
+  faFistRaised,
+  faHatWizard,
+  faCrosshairs,
+  faHandHoldingHeart,
+  faShieldAlt,
+  faCheck,
+} from "@fortawesome/free-solid-svg-icons"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
+
+const ChampionTypes = [
+  "Assassin",
+  "Fighter",
+  "Mage",
+  "Marksman",
+  "Support",
+  "Tank",
+] as const
+type TypeFilter = (typeof ChampionTypes)[number]
+
+const typeIcons = {
+  Assassin: faUserNinja,
+  Fighter: faFistRaised,
+  Mage: faHatWizard,
+  Marksman: faCrosshairs,
+  Support: faHandHoldingHeart,
+  Tank: faShieldAlt,
+}
 
 const props = defineProps<{
   challenge: Challenge
@@ -30,7 +57,16 @@ const championBuildLink = (champ: Champion) => {
 
 const showAramStats = ref(false)
 const filter = ref<Filter>("All")
+const selectedTypes = ref<Set<TypeFilter>>(new Set())
 const search = ref<string>("")
+
+const toggleType = (type: TypeFilter) => {
+  if (selectedTypes.value.has(type)) {
+    selectedTypes.value.delete(type)
+  } else {
+    selectedTypes.value.add(type)
+  }
+}
 
 const championsList = computed(() => {
   let list = props.challenge.champions
@@ -44,6 +80,10 @@ const championsList = computed(() => {
     case "Not Done":
       list = props.challenge.champions.filter((c) => !c.done)
       break
+  }
+
+  if (selectedTypes.value.size > 0) {
+    list = list.filter((c) => selectedTypes.value.has(c.type))
   }
 
   if (search.value) {
@@ -81,13 +121,27 @@ const championsList = computed(() => {
         />
       </div>
     </div>
-
     <div class="description-container">
       <p>{{ challenge.description }}</p>
 
       <div v-if="challenge.mode === 'Aram'" class="stats-checkbox">
         <input type="checkbox" id="show-stats" v-model="showAramStats" />
         <label for="show-stats">Show ARAM balance changes</label>
+      </div>
+    </div>
+
+    <div class="type-filters-container">
+      <div class="type-filters">
+        <button
+          v-for="type in ChampionTypes"
+          :key="type"
+          class="league-button type-button"
+          :class="{ active: selectedTypes.has(type) }"
+          @click="toggleType(type)"
+        >
+          <FontAwesomeIcon :icon="typeIcons[type]" />
+          <span>{{ type }}</span>
+        </button>
       </div>
     </div>
 
@@ -133,30 +187,28 @@ const championsList = computed(() => {
       </div>
     </div>
 
-    <div class="champions-container">
-      <div v-for="champ in championsList" class="champion">
-        <a :href="championBuildLink(champ)" target="_blank">
-          <img
-            :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
-            :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
-            :alt="champ.id"
-          />
-
-          <AramStatBox
-            v-if="
-              challenge.mode === 'Aram' &&
-              stats &&
-              showAramStats &&
-              stats[champ.alias]
-            "
-            :stats="stats[champ.alias]"
-          />
-        </a>
-        <div v-if="champ.done" class="check-mark">
-          <FontAwesomeIcon :icon="faCheck" />
-        </div>
+    <div class="champion-icons">
+      <a
+        v-for="champ in championsList"
+        :href="championBuildLink(champ)"
+        target="_blank"
+      >
         <p class="name" v-if="showChampionNames">{{ champ.name }}</p>
-      </div>
+        <img
+          :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
+          :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
+          :alt="champ.id"
+        />
+        <AramStatBox
+          v-if="
+            challenge.mode === 'Aram' &&
+            stats &&
+            showAramStats &&
+            stats[champ.alias]
+          "
+          :stats="stats[champ.alias]"
+        />
+      </a>
     </div>
   </div>
 </template>
@@ -175,6 +227,33 @@ const championsList = computed(() => {
 
 .filters {
   display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-filters-container {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.type-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.type-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.type-button.active {
+  background: linear-gradient(to bottom, #433d2b, #1e2328);
+  color: #0ac8b9;
 }
 
 .stats-checkbox {
@@ -198,73 +277,50 @@ input.search {
   margin-left: 32px;
 }
 
-.selected-champ-container {
-  display: flex;
-  margin-bottom: 16px;
-}
-
-.champions-container {
+.champion-icons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
-
 h1 {
   font-family: "BeaufortforLol Bold";
   font-size: 2.5em;
   text-transform: uppercase;
   margin: 0;
 }
-
 p {
   margin: 0;
   margin-bottom: 8px;
 }
-
 .greyed {
-  filter: brightness(30%);
+  filter: grayscale(100%) brightness(40%);
 }
-
-.champion {
+a {
+  display: block;
+  height: 120px;
+  width: 120px;
   position: relative;
+  text-align: center;
 }
-
-.champion:hover {
+a:hover {
   filter: brightness(150%);
 }
-
-.champion a {
-  display: block;
-  width: 128px;
-  height: 128px;
-  border: 1px solid #3c3c41;
-  text-decoration: none;
-}
-
 .name {
-  text-align: center;
-  line-height: 1;
+  display: block;
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  background-color: rgba(0, 0, 0, 0.8);
   padding: 4px;
-  color: #a09b8c;
+  transform: translate(-50%, -50%);
+  color: white;
+  z-index: 1;
   white-space: nowrap;
 }
-
-img {
-  height: 128px;
-  width: 128px;
+a img {
+  position: relative;
 }
-
-.check-mark {
-  position: absolute;
-  z-index: 1;
-  top: -8px;
-  right: -8px;
-  background-color: #0ac8b9;
-  border-radius: 50%;
-  border: 2px solid black;
-  padding: 2px 6px;
-  font-size: 14px;
-  color: black;
-  font-weight: bold;
+a:hover .name {
+  display: initial;
 }
 </style>
