@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { AramStats, Challenge, Champion } from "../types/lol"
+import {
+  AramStats,
+  Challenge,
+  Champion,
+  ChampionRole,
+  ChampionRoles,
+} from "../types/lol"
 import AramStatBox from "./AramStatBox.vue"
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import {
@@ -11,29 +17,20 @@ import {
   faHandHoldingHeart,
   faShieldAlt,
   faCheck,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons"
 import LeagueDropdown from "./LeagueDropdown.vue"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
 
-const ChampionTypes = [
-  "Assassin",
-  "Fighter",
-  "Mage",
-  "Marksman",
-  "Support",
-  "Tank",
-] as const
-type TypeFilter = (typeof ChampionTypes)[number]
-
-const typeIcons = {
-  Assassin: faUserNinja,
-  Fighter: faFistRaised,
-  Mage: faHatWizard,
-  Marksman: faCrosshairs,
-  Support: faHandHoldingHeart,
-  Tank: faShieldAlt,
+const typeIcons: Record<ChampionRole, IconDefinition> = {
+  assassin: faUserNinja,
+  fighter: faFistRaised,
+  mage: faHatWizard,
+  marksman: faCrosshairs,
+  support: faHandHoldingHeart,
+  tank: faShieldAlt,
 }
 
 const props = defineProps<{
@@ -58,15 +55,19 @@ const championBuildLink = (champ: Champion) => {
 
 const showAramStats = ref(false)
 const filter = ref<Filter>("All")
-const selectedTypes = ref<Set<TypeFilter>>(new Set())
+const selectedTypes = ref<Set<ChampionRole>>(new Set())
 const search = ref<string>("")
 
-const toggleType = (type: TypeFilter) => {
+const toggleType = (type: ChampionRole) => {
   if (selectedTypes.value.has(type)) {
     selectedTypes.value.delete(type)
   } else {
     selectedTypes.value.add(type)
   }
+}
+
+const capitalize = (v: string) => {
+  return v.charAt(0).toUpperCase() + v.slice(1)
 }
 
 const championsList = computed(() => {
@@ -84,7 +85,9 @@ const championsList = computed(() => {
   }
 
   if (selectedTypes.value.size > 0) {
-    list = list.filter((c) => selectedTypes.value.has(c.type))
+    // We don't filter on the secondary role, it doesn't narrow enough
+    // e.g. Riven, Lucian would count as assassins
+    list = list.filter((c) => selectedTypes.value.has(c.roles[0]))
   }
 
   if (search.value) {
@@ -133,14 +136,14 @@ const filterOptions = computed(() => {
     <div class="type-filters-container">
       <div class="type-filters">
         <button
-          v-for="type in ChampionTypes"
+          v-for="type in ChampionRoles"
           :key="type"
           class="league-button type-button"
           :class="{ active: selectedTypes.has(type) }"
           @click="toggleType(type)"
         >
           <FontAwesomeIcon :icon="typeIcons[type]" />
-          <span>{{ type }}</span>
+          <span>{{ capitalize(type) }}</span>
         </button>
       </div>
     </div>
