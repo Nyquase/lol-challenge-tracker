@@ -1,5 +1,15 @@
+export interface Summoner {
+  accountId: string
+  gameName: string
+  profileIconId: number
+  puuid: string
+  summonerId: number
+  summonerLevel: number
+  tagLine: string
+}
+
 export interface Champion {
-  id: string
+  id: number
   alias: string
   name: string
   roles: ChampionRole[]

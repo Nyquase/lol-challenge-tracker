@@ -150,7 +150,7 @@ const filterOptions = computed(() => {
 
     <div class="selected-champ-container">
       <div>
-        <div class="selected-champ-text">Champ Select</div>
+        <div class="selected-champ-text">Champ Select Preview</div>
         <div class="champion">
           <a
             :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
@@ -164,7 +164,7 @@ const filterOptions = computed(() => {
                   : !selectedChamp.done,
               }"
               :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${selectedChamp.id}.png`"
-              :alt="selectedChamp.id"
+              :alt="selectedChamp.id.toString()"
             />
             <img
               v-else
@@ -195,7 +195,7 @@ const filterOptions = computed(() => {
           <img
             :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
             :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
-            :alt="champ.id"
+            :alt="champ.id.toString()"
           />
         </a>
         <div v-if="champ.done" class="check-mark">

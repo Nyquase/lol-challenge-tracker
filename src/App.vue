@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faGear } from "@fortawesome/free-solid-svg-icons"
 
 import { LCUCredentials, RawChallenge } from "./types/lcu"
-import { AramStats, Challenge, Champion } from "./types/lol"
+import { AramStats, Challenge, Champion, Summoner } from "./types/lol"
 import { StoredSettings } from "./types/app"
 import {
   challengeFromCompletedIds as challengeFromRaw,
@@ -18,12 +18,11 @@ import Settings from "./components/Settings.vue"
 import LeagueDropdown from "./components/LeagueDropdown.vue"
 
 const credentials = ref<LCUCredentials | null>(null)
+
 const allChampions = ref<Champion[] | null>(null)
-
+const summoner = ref<Summoner | null>(null)
 const challenges = ref<Challenge[]>([])
-
 const stats = ref<AramStats | null>(null)
-
 const selectedChamp = ref<Challenge["champions"][number] | null>(null)
 
 onMounted(async () => {
@@ -52,6 +51,13 @@ const fetchAramStats = async () => {
 const fetchLCU = async () => {
   if (credentials.value === null) return
   try {
+    const summonerRes = await makeLCURequest<Summoner>(
+      credentials.value,
+      "/lol-summoner/v1/current-summoner"
+    )
+
+    summoner.value = summonerRes
+
     const champsRes = await makeLCURequest<Champion[]>(
       credentials.value,
       "/lol-champions/v1/owned-champions-minimal"
@@ -81,12 +87,7 @@ const updateSettings = (settings: StoredSettings) => {
   window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings))
 }
 
-window.ipcRenderer.on("end-of-game", () => {
-  selectedChamp.value = null
-  fetchLCU()
-})
-
-window.ipcRenderer.on("pick", async (_event, champId: string | null) => {
+const handlePickEvent = (champId: number | null) => {
   if (champId === null) {
     selectedChamp.value = null
   }
@@ -96,6 +97,15 @@ window.ipcRenderer.on("pick", async (_event, champId: string | null) => {
   if (champ) {
     selectedChamp.value = champ
   }
+}
+
+window.ipcRenderer.on("end-of-game", () => {
+  selectedChamp.value = null
+  fetchLCU()
+})
+
+window.ipcRenderer.on("pick", async (_event, champId: number | null) => {
+  handlePickEvent(champId)
 })
 
 window.ipcRenderer.on(
@@ -121,6 +131,18 @@ window.ipcRenderer.on(
 
     if (storedSelectedChallengeIdx) {
       selectedChallengeIndex.value = Number(storedSelectedChallengeIdx)
+    }
+  }
+)
+
+window.ipcRenderer.on(
+  "game-start",
+  async (_event, champSelect: { championId: number; puuid: string }[]) => {
+    const localPickedChamp = champSelect.find(
+      (c) => c.puuid === summoner.value?.puuid
+    )
+    if (localPickedChamp) {
+      handlePickEvent(localPickedChamp.championId)
     }
   }
 )
