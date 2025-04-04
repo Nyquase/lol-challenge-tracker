@@ -2,7 +2,18 @@ export interface Champion {
   id: string
   alias: string
   name: string
+  roles: ChampionRole[]
 }
+
+export const ChampionRoles = [
+  "assassin",
+  "fighter",
+  "mage",
+  "marksman",
+  "support",
+  "tank",
+] as const
+export type ChampionRole = (typeof ChampionRoles)[number]
 
 export interface Challenge {
   name: string

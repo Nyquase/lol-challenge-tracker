@@ -75,12 +75,6 @@ const selectedChallengeIndex = ref(0)
 const isColoredWhenDone = ref(false)
 const showChampionNames = ref(false)
 
-const setSelectedChallengeIndex = (e: any) => {
-  const idx = e.target.value
-  selectedChallengeIndex.value = Number(idx)
-  window.ipcRenderer.send("store-set", "selected-challenge-index", idx)
-}
-
 const updateSettings = (settings: StoredSettings) => {
   isColoredWhenDone.value = settings.isColoredWhenDone
   showChampionNames.value = settings.showChampionNames
