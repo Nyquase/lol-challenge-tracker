@@ -65,8 +65,6 @@ const formatStat = (value: number) => {
 
 <style scoped>
 .stats {
-  z-index: 2;
-  position: absolute;
   top: 0;
   left: 0;
   font-size: 12px;

@@ -12,6 +12,7 @@ import {
   faShieldAlt,
   faCheck,
 } from "@fortawesome/free-solid-svg-icons"
+import LeagueDropdown from "./LeagueDropdown.vue"
 
 const Filters = ["All", "Not Done", "Done"] as const
 type Filter = (typeof Filters)[number]
@@ -94,6 +95,13 @@ const championsList = computed(() => {
 
   return list
 })
+
+const filterOptions = computed(() => {
+  return Filters.map((filter) => ({
+    name: filter,
+    value: filter,
+  }))
+})
 </script>
 
 <template>
@@ -104,15 +112,7 @@ const championsList = computed(() => {
         {{ allChampions.length }})
       </h1>
       <div class="filters">
-        <select class="league-select" v-model="filter">
-          <option
-            :class="{ selected: filter === f }"
-            v-for="f in Filters"
-            :value="f"
-          >
-            {{ f }}
-          </option>
-        </select>
+        <LeagueDropdown v-model="filter" :options="filterOptions" />
         <input
           class="league-input search"
           v-model="search"
@@ -153,7 +153,6 @@ const championsList = computed(() => {
             :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
             target="_blank"
           >
-            <p v-if="selectedChamp" class="name">{{ selectedChamp.name }}</p>
             <img
               v-if="selectedChamp"
               :class="{
@@ -172,33 +171,33 @@ const championsList = computed(() => {
             <div v-if="selectedChamp && selectedChamp.done" class="check-mark">
               <FontAwesomeIcon :icon="faCheck" />
             </div>
-            <AramStatBox
-              v-if="
-                selectedChamp &&
-                challenge.mode === 'Aram' &&
-                stats &&
-                showAramStats &&
-                stats[selectedChamp.alias]
-              "
-              :stats="stats[selectedChamp.alias]"
-            />
           </a>
+          <AramStatBox
+            v-if="
+              selectedChamp &&
+              challenge.mode === 'Aram' &&
+              stats &&
+              showAramStats &&
+              stats[selectedChamp.alias]
+            "
+            :stats="stats[selectedChamp.alias]"
+          />
         </div>
       </div>
     </div>
 
-    <div class="champion-icons">
-      <a
-        v-for="champ in championsList"
-        :href="championBuildLink(champ)"
-        target="_blank"
-      >
-        <p class="name" v-if="showChampionNames">{{ champ.name }}</p>
-        <img
-          :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
-          :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
-          :alt="champ.id"
-        />
+    <div class="champions-container">
+      <div v-for="champ in championsList" class="champion">
+        <a :href="championBuildLink(champ)" target="_blank">
+          <img
+            :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
+            :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
+            :alt="champ.id"
+          />
+        </a>
+        <div v-if="champ.done" class="check-mark">
+          <FontAwesomeIcon :icon="faCheck" />
+        </div>
         <AramStatBox
           v-if="
             challenge.mode === 'Aram' &&
@@ -208,7 +207,8 @@ const championsList = computed(() => {
           "
           :stats="stats[champ.alias]"
         />
-      </a>
+        <p class="name" v-if="showChampionNames">{{ champ.name }}</p>
+      </div>
     </div>
   </div>
 </template>
@@ -228,32 +228,6 @@ const championsList = computed(() => {
 .filters {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.type-filters-container {
-  display: flex;
-  justify-content: center;
-  margin: 16px 0;
-}
-
-.type-filters {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.type-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
-}
-
-.type-button.active {
-  background: linear-gradient(to bottom, #433d2b, #1e2328);
-  color: #0ac8b9;
 }
 
 .stats-checkbox {
@@ -277,50 +251,97 @@ input.search {
   margin-left: 32px;
 }
 
-.champion-icons {
+.selected-champ-container {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.champions-container {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
+
 h1 {
   font-family: "BeaufortforLol Bold";
   font-size: 2.5em;
   text-transform: uppercase;
   margin: 0;
 }
+
 p {
   margin: 0;
   margin-bottom: 8px;
 }
+
 .greyed {
-  filter: grayscale(100%) brightness(40%);
+  filter: brightness(30%);
 }
-a {
-  display: block;
-  height: 120px;
-  width: 120px;
+
+.champion {
   position: relative;
-  text-align: center;
 }
-a:hover {
+
+.champion:hover {
   filter: brightness(150%);
 }
-.name {
+
+.champion a {
   display: block;
-  position: absolute;
-  top: 15%;
-  left: 50%;
-  background-color: rgba(0, 0, 0, 0.8);
+  width: 128px;
+  height: 128px;
+  border: 1px solid #3c3c41;
+  text-decoration: none;
+}
+
+.name {
+  text-align: center;
+  line-height: 1;
   padding: 4px;
-  transform: translate(-50%, -50%);
-  color: white;
-  z-index: 1;
+  color: #a09b8c;
   white-space: nowrap;
 }
-a img {
-  position: relative;
+
+img {
+  height: 128px;
+  width: 128px;
 }
-a:hover .name {
-  display: initial;
+
+.check-mark {
+  position: absolute;
+  z-index: 1;
+  top: -8px;
+  right: -8px;
+  background-color: #0ac8b9;
+  border-radius: 50%;
+  border: 2px solid black;
+  padding: 2px 6px;
+  font-size: 14px;
+  color: black;
+  font-weight: bold;
+}
+
+.type-filters-container {
+  display: flex;
+  margin: 16px 0;
+}
+
+.type-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.type-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+}
+
+.type-button.active {
+  background: linear-gradient(to bottom, #433d2b, #1e2328);
+  color: #0ac8b9;
 }
 </style>

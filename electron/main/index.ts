@@ -130,10 +130,10 @@ async function connectWebsocket(
         win.webContents.send("end-of-game")
         break
       case LCUEvents.ChampSelectSession:
-        console.log(JSON.stringify(event.data, null, 4))
-        if (event.data.localPlayerCellId === -1)
-          win.webContents.send("pick", null)
         const champId = parseSessionEvent(event.data)
+        if (champId < 0) {
+          win.webContents.send("pick", null)
+        }
         if (champId) {
           win.webContents.send("pick", champId)
         }

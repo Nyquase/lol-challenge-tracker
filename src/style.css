@@ -108,7 +108,7 @@ body {
   font-size: 15px;
   font-weight: bold;
   letter-spacing: 1px;
-  padding: 8px 16px;
+  padding: 10px 16px;
   background: #1e2328;
   color: #cdbe91;
   box-shadow: inset 0 0 2px #000000;
@@ -118,6 +118,7 @@ body {
 }
 
 .league-input::-webkit-search-cancel-button {
+  font-size: 18px;
   cursor: pointer;
 }
 
