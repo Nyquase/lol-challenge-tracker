@@ -150,7 +150,11 @@ const filterOptions = computed(() => {
 
     <div class="selected-champ-container">
       <div>
-        <div class="selected-champ-text">Champ Select</div>
+        <div class="selected-champ-text">Champ Select Preview</div>
+        <div v-if="selectedChamp" class="selected-champ-done-label">
+          <span class="selected-champion-name">{{ selectedChamp.name }}</span> :
+          {{ selectedChamp.done ? "Done" : "Not Done" }}
+        </div>
         <div class="champion">
           <a
             :href="selectedChamp ? championBuildLink(selectedChamp) : ''"
@@ -164,7 +168,7 @@ const filterOptions = computed(() => {
                   : !selectedChamp.done,
               }"
               :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${selectedChamp.id}.png`"
-              :alt="selectedChamp.id"
+              :alt="selectedChamp.id.toString()"
             />
             <img
               v-else
@@ -195,7 +199,7 @@ const filterOptions = computed(() => {
           <img
             :class="{ greyed: isColoredWhenDone ? champ.done : !champ.done }"
             :src="`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champion-icons/${champ.id}.png`"
-            :alt="champ.id"
+            :alt="champ.id.toString()"
           />
         </a>
         <div v-if="champ.done" class="check-mark">
@@ -210,7 +214,7 @@ const filterOptions = computed(() => {
           "
           :stats="stats[champ.alias]"
         />
-        <p class="name" v-if="showChampionNames">{{ champ.name }}</p>
+        <p class="champion-name" v-if="showChampionNames">{{ champ.name }}</p>
       </div>
     </div>
   </div>
@@ -256,7 +260,22 @@ input.search {
 
 .selected-champ-container {
   display: flex;
-  margin-bottom: 16px;
+  margin-bottom: 32px;
+}
+
+.selected-champ-text {
+  margin-bottom: 4px;
+}
+
+.selected-champ-done-label {
+  text-wrap: nowrap;
+  z-index: 2;
+  padding: 4px;
+}
+
+.selected-champion-name {
+  color: #c8aa6e;
+  white-space: nowrap;
 }
 
 .champions-container {
@@ -290,6 +309,7 @@ p {
 }
 
 .champion a {
+  position: relative;
   display: block;
   width: 128px;
   height: 128px;
@@ -297,7 +317,7 @@ p {
   text-decoration: none;
 }
 
-.name {
+.champion-name {
   text-align: center;
   line-height: 1;
   padding: 4px;

@@ -14,7 +14,7 @@
   -webkit-text-size-adjust: 100%;
 
   --main-text-color: #f0e6d2;
-  --main-bg-gradient: linear-gradient(#091428, #0a1428);
+  --main-bg-gradient: linear-gradient(to left, #091428, #0a1428);
 }
 
 body {

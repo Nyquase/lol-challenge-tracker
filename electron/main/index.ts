@@ -53,7 +53,7 @@ async function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, "favicon.ico"),
     autoHideMenuBar: true,
     height: 920,
-    width: 1340,
+    width: VITE_DEV_SERVER_URL ? 1440 + 760 : 1440,
     webPreferences: {
       preload,
       nodeIntegration: true,
@@ -138,6 +138,15 @@ async function connectWebsocket(
           win.webContents.send("pick", champId)
         }
         break
+      case LCUEvents.GameSession:
+        if (event.data.phase === "InProgress") {
+          console.log(JSON.stringify(event, null, 4))
+          win.webContents.send(
+            "game-start",
+            event.data.gameData.playerChampionSelections
+          )
+        }
+        break
     }
   })
 
@@ -146,6 +155,7 @@ async function connectWebsocket(
     // 5 Means Subscribe
     ws.send(`[5, "${LCUEvents.EndOfGameStats}"]`)
     ws.send(`[5, "${LCUEvents.ChampSelectSession}"]`)
+    ws.send(`[5, "${LCUEvents.GameSession}"]`)
   })
 }
 

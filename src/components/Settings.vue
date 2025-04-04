@@ -63,13 +63,12 @@ const showChampionNames = defineModel<boolean>("showChampionNames", {
 <style scoped>
 .settings {
   position: absolute;
-  top: 260px;
   right: 16px;
-  top: 74px;
+  top: 68px;
   background-color: grey;
   z-index: 10;
   font-size: 16px;
-  background: var(--main-bg-gradient);
+  background-color: #161616;
   color: #cdbe91;
   box-shadow: inset 0 0 2px #000000, 4px 4px 8px #000;
   border: solid 2px #785a28;
