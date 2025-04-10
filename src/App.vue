@@ -60,9 +60,11 @@ const fetchLCU = async () => {
 
     const champsRes = await makeLCURequest<Champion[]>(
       credentials.value,
-      "/lol-champions/v1/owned-champions-minimal"
+      `/lol-champions/v1/inventories/${summonerRes.summonerId}/champions-minimal`
     )
 
+    // Remove the first champ ("None" champion)
+    champsRes.shift()
     const allChamps = champsRes.sort((a, b) => a.name.localeCompare(b.name))
     allChampions.value = allChamps
 

@@ -346,7 +346,8 @@ img {
 
 .type-filters-container {
   display: flex;
-  margin: 16px 0;
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 
 .type-filters {

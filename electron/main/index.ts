@@ -140,7 +140,6 @@ async function connectWebsocket(
         break
       case LCUEvents.GameSession:
         if (event.data.phase === "InProgress") {
-          console.log(JSON.stringify(event, null, 4))
           win.webContents.send(
             "game-start",
             event.data.gameData.playerChampionSelections
