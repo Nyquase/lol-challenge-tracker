@@ -220,7 +220,7 @@ const filterOptions = computed(() => {
           :stats="stats[champ.alias]"
         />
         <p class="champion-name" v-if="showChampionNames">{{ champ.name }}</p>
-        <p class="champion-name">{{ champ.championPoints.toLocaleString() }}</p>
+        <p class="champion-name">{{ champ.championPoints.toLocaleString() }} pts</p>
       </div>
     </div>
   </div>
