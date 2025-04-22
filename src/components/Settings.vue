@@ -12,6 +12,10 @@ const isColoredWhenDone = defineModel<boolean>("isColoredWhenDone", {
 const showChampionNames = defineModel<boolean>("showChampionNames", {
   required: true,
 })
+
+const sortByMastery = defineModel<boolean>("sortByMastery", {
+  required: true,
+})
 </script>
 
 <template>
@@ -45,6 +49,13 @@ const showChampionNames = defineModel<boolean>("showChampionNames", {
         @click="showChampionNames = !showChampionNames"
       >
         {{ showChampionNames ? "Hide" : "Show" }} champion names
+      </button>
+
+      <button
+        class="league-button view-mode"
+        @click="sortByMastery = !sortByMastery"
+      >
+        {{ sortByMastery ? "Sort by name" : "Sort by mastery" }}
       </button>
     </div>
 

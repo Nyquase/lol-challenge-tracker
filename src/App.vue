@@ -1,168 +1,191 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from "vue"
+import { onMounted, ref, computed } from "vue";
 
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
-import { faGear } from "@fortawesome/free-solid-svg-icons"
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { faGear } from "@fortawesome/free-solid-svg-icons";
 
-import { LCUCredentials, RawChallenge } from "./types/lcu"
-import { AramStats, Challenge, Champion, Summoner } from "./types/lol"
-import { StoredSettings } from "./types/app"
+import { LCUCredentials, RawChallenge } from "./types/lcu";
+import { AramStats, Challenge, Champion, Summoner } from "./types/lol";
+import { StoredSettings } from "./types/app";
 import {
   challengeFromCompletedIds as challengeFromRaw,
   makeLCURequest,
   parseMerakiFile,
-} from "./helpers/utils"
-import { challengeWithCompletion } from "./constants"
-import ChallengeSection from "./components/ChallengeSection.vue"
-import Settings from "./components/Settings.vue"
-import LeagueDropdown from "./components/LeagueDropdown.vue"
+} from "./helpers/utils";
+import { challengeWithCompletion } from "./constants";
+import ChallengeSection from "./components/ChallengeSection.vue";
+import Settings from "./components/Settings.vue";
+import LeagueDropdown from "./components/LeagueDropdown.vue";
 
-const credentials = ref<LCUCredentials | null>(null)
+const credentials = ref<LCUCredentials | null>(null);
 
-const allChampions = ref<Champion[] | null>(null)
-const summoner = ref<Summoner | null>(null)
-const challenges = ref<Challenge[]>([])
-const stats = ref<AramStats | null>(null)
-const selectedChamp = ref<Challenge["champions"][number] | null>(null)
+const allChampions = ref<Champion[] | null>(null);
+const summoner = ref<Summoner | null>(null);
+const challenges = ref<Challenge[]>([]);
+const stats = ref<AramStats | null>(null);
+const selectedChamp = ref<Challenge["champions"][number] | null>(null);
 
 onMounted(async () => {
-  window.ipcRenderer.send("app-ready")
+  window.ipcRenderer.send("app-ready");
   const storedAramStats = await window.ipcRenderer.invoke(
     "store-get",
     "aram-stats"
-  )
+  );
   if (storedAramStats) {
-    stats.value = JSON.parse(storedAramStats)
+    stats.value = JSON.parse(storedAramStats);
   } else {
-    await fetchAramStats()
+    await fetchAramStats();
   }
-})
+});
 
 const fetchAramStats = async () => {
   const res = await fetch(
     `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json`,
     { cache: "no-cache" }
-  )
-  const parsed = parseMerakiFile(await res.json())
-  window.ipcRenderer.send("store-set", "aram-stats", JSON.stringify(parsed))
-  stats.value = parsed
-}
+  );
+  const parsed = parseMerakiFile(await res.json());
+  window.ipcRenderer.send("store-set", "aram-stats", JSON.stringify(parsed));
+  stats.value = parsed;
+};
 
 const fetchLCU = async () => {
-  if (credentials.value === null) return
+  if (credentials.value === null) return;
   try {
     const summonerRes = await makeLCURequest<Summoner>(
       credentials.value,
       "/lol-summoner/v1/current-summoner"
-    )
+    );
 
-    summoner.value = summonerRes
+    summoner.value = summonerRes;
 
     const champsRes = await makeLCURequest<Champion[]>(
       credentials.value,
       `/lol-champions/v1/inventories/${summonerRes.summonerId}/champions-minimal`
-    )
+    );
 
-    // Remove the first champ ("None" champion)
-    champsRes.shift()
-    const allChamps = champsRes.sort((a, b) => a.name.localeCompare(b.name))
-    allChampions.value = allChamps
+    champsRes.shift();
+    const sortedChamps = champsRes.sort((a, b) => a.name.localeCompare(b.name));
+
+    const masteryData: {
+      championId: number;
+      championPoints: number;
+    }[] = await makeLCURequest(
+      credentials.value,
+      "/lol-champion-mastery/v1/local-player/champion-mastery"
+    );
+
+    const masteryMap = new Map<number, number>();
+    for (const mastery of masteryData) {
+      masteryMap.set(mastery.championId, mastery.championPoints);
+    }
+
+    const enrichedChamps = sortedChamps.map((champ) => ({
+      ...champ,
+      championPoints: masteryMap.get(champ.id) ?? 0,
+    }));
+
+    allChampions.value = enrichedChamps;
 
     const allChallenges: Record<string, RawChallenge> = await makeLCURequest(
       credentials.value,
       "/lol-challenges/v1/challenges/local-player"
-    )
+    );
 
     challenges.value = challengeWithCompletion.map((c) =>
-      challengeFromRaw(allChallenges[c.id], allChamps, c.gameMode)
-    )
-  } catch (e) {}
-}
+      challengeFromRaw(allChallenges[c.id], enrichedChamps, c.gameMode)
+    );
+  } catch (e) {
+    console.error("Failed to fetch LCU data", e);
+  }
+};
 
-const selectedChallengeIndex = ref(0)
-const isColoredWhenDone = ref(false)
-const showChampionNames = ref(false)
+
+const selectedChallengeIndex = ref(0);
+const isColoredWhenDone = ref(false);
+const showChampionNames = ref(false);
+const sortByMastery = ref(false);
 
 const updateSettings = (settings: StoredSettings) => {
-  isColoredWhenDone.value = settings.isColoredWhenDone
-  showChampionNames.value = settings.showChampionNames
-  window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings))
-}
+  isColoredWhenDone.value = settings.isColoredWhenDone;
+  showChampionNames.value = settings.showChampionNames;
+  sortByMastery.value = settings.sortByMastery;
+  window.ipcRenderer.send("store-set", "settings", JSON.stringify(settings));
+};
 
 const handlePickEvent = (champId: number | null) => {
   if (champId === null) {
-    selectedChamp.value = null
+    selectedChamp.value = null;
   }
   const champ = challenges.value[selectedChallengeIndex.value]?.champions.find(
     (c) => c.id === champId
-  )
+  );
   if (champ) {
-    selectedChamp.value = champ
+    selectedChamp.value = champ;
   }
-}
+};
 
 window.ipcRenderer.on("end-of-game", () => {
-  selectedChamp.value = null
-  fetchLCU()
-})
+  selectedChamp.value = null;
+  fetchLCU();
+});
 
 window.ipcRenderer.on("pick", async (_event, champId: number | null) => {
-  handlePickEvent(champId)
-})
+  handlePickEvent(champId);
+});
 
 window.ipcRenderer.on(
   "credentials",
   async (_event, newCredentials: LCUCredentials) => {
-    credentials.value = newCredentials
-    await fetchLCU()
+    credentials.value = newCredentials;
+    await fetchLCU();
     const storedSelectedChallengeIdx = await window.ipcRenderer.invoke(
       "store-get",
       "selected-challenge-index"
-    )
+    );
 
     const storedSettings = await window.ipcRenderer.invoke(
       "store-get",
       "settings"
-    )
+    );
 
     if (storedSettings) {
-      const settings: StoredSettings = JSON.parse(storedSettings)
-      isColoredWhenDone.value = settings.isColoredWhenDone
-      showChampionNames.value = settings.showChampionNames
+      const settings: StoredSettings = JSON.parse(storedSettings);
+      isColoredWhenDone.value = settings.isColoredWhenDone;
+      showChampionNames.value = settings.showChampionNames;
     }
 
     if (storedSelectedChallengeIdx) {
-      selectedChallengeIndex.value = Number(storedSelectedChallengeIdx)
+      selectedChallengeIndex.value = Number(storedSelectedChallengeIdx);
     }
   }
-)
+);
 
 window.ipcRenderer.on(
   "game-start",
   async (_event, champSelect: { championId: number; puuid: string }[]) => {
     const localPickedChamp = champSelect.find(
       (c) => c.puuid === summoner.value?.puuid
-    )
+    );
     if (localPickedChamp) {
-      handlePickEvent(localPickedChamp.championId)
+      handlePickEvent(localPickedChamp.championId);
     }
   }
-)
+);
 
-window.ipcRenderer.on("refetch", fetchLCU)
+window.ipcRenderer.on("refetch", fetchLCU);
 
-const settingsVisible = ref(false)
+const settingsVisible = ref(false);
 
 const onClickSettings = () => {
-  settingsVisible.value = !settingsVisible.value
-}
+  settingsVisible.value = !settingsVisible.value;
+};
 
 const challengeOptions = computed(() => {
   return challenges.value.map((challenge, idx) => ({
     name: challenge.name,
     value: idx,
-  }))
-})
+  }));
+});
 </script>
 
 <template>
@@ -185,6 +208,7 @@ const challengeOptions = computed(() => {
         :selectedChamp="selectedChamp"
         :isColoredWhenDone="isColoredWhenDone"
         :showChampionNames="showChampionNames"
+        :sortByMastery="sortByMastery"
         :stats="stats"
       />
     </div>
@@ -193,11 +217,30 @@ const challengeOptions = computed(() => {
       v-model:visible="settingsVisible"
       :isColoredWhenDone="isColoredWhenDone"
       :showChampionNames="showChampionNames"
+      :sortByMastery="sortByMastery"
       @update:isColoredWhenDone="
-        (v) => updateSettings({ isColoredWhenDone: v, showChampionNames })
+        (v) =>
+          updateSettings({
+            isColoredWhenDone: v,
+            showChampionNames,
+            sortByMastery,
+          })
       "
       @update:showChampionNames="
-        (v) => updateSettings({ isColoredWhenDone, showChampionNames: v })
+        (v) =>
+          updateSettings({
+            isColoredWhenDone,
+            showChampionNames: v,
+            sortByMastery,
+          })
+      "
+      @update:sortByMastery="
+        (v) =>
+          updateSettings({
+            isColoredWhenDone,
+            showChampionNames,
+            sortByMastery: v,
+          })
       "
       @refetch="fetchLCU"
       @refetch-aram-stats="fetchAramStats"
