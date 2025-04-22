@@ -39,6 +39,7 @@ const props = defineProps<{
   selectedChamp: Challenge["champions"][number] | null
   isColoredWhenDone: boolean
   showChampionNames: boolean
+  sortByMastery: boolean
   stats: AramStats | null
 }>()
 
@@ -72,6 +73,7 @@ const capitalize = (v: string) => {
 
 const championsList = computed(() => {
   let list = props.challenge.champions
+
   switch (filter.value) {
     case "All":
       list = props.challenge.champions
@@ -85,19 +87,22 @@ const championsList = computed(() => {
   }
 
   if (selectedTypes.value.size > 0) {
-    // We don't filter on the secondary role, it doesn't narrow enough
-    // e.g. Riven, Lucian would count as assassins
     list = list.filter((c) => selectedTypes.value.has(c.roles[0]))
   }
 
   if (search.value) {
-    return list.filter((c) =>
+    list = list.filter((c) =>
       c.name.toLocaleLowerCase().includes(search.value.toLowerCase())
     )
   }
 
-  return list
+  return [...list].sort((a, b) =>
+    props.sortByMastery
+      ? (b.championPoints ?? 0) - (a.championPoints ?? 0)
+      : a.name.localeCompare(b.name)
+  )
 })
+
 
 const filterOptions = computed(() => {
   return Filters.map((filter) => ({
@@ -215,6 +220,7 @@ const filterOptions = computed(() => {
           :stats="stats[champ.alias]"
         />
         <p class="champion-name" v-if="showChampionNames">{{ champ.name }}</p>
+        <p class="champion-name">{{ champ.championPoints.toLocaleString() }}</p>
       </div>
     </div>
   </div>
