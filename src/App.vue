@@ -65,7 +65,7 @@ const fetchLCU = async () => {
 
     // Remove the first champ ("None" champion)
     champsRes.shift()
-    const allChamps = champsRes.sort((a, b) => a.name.localeCompare(b.name))
+    const allChamps = champsRes.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name))
     allChampions.value = allChamps
 
     const allChallenges: Record<string, RawChallenge> = await makeLCURequest(

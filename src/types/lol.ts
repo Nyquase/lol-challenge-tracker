@@ -13,6 +13,7 @@ export interface Champion {
   alias: string
   name: string
   roles: ChampionRole[]
+  active: boolean
 }
 
 export const ChampionRoles = [
