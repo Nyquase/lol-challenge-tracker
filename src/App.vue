@@ -1,15 +1,11 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from "vue"
-
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faGear } from "@fortawesome/free-solid-svg-icons"
-
-import { LCUCredentials, RawChallenge } from "./types/lcu"
+import { LcuData, StoredSettings } from "./types/app"
 import { AramStats, Challenge, Champion, Summoner } from "./types/lol"
-import { StoredSettings } from "./types/app"
 import {
   challengeFromCompletedIds as challengeFromRaw,
-  makeLCURequest,
   parseMerakiFile,
 } from "./helpers/utils"
 import { challengeWithCompletion } from "./constants"
@@ -17,67 +13,81 @@ import ChallengeSection from "./components/ChallengeSection.vue"
 import Settings from "./components/Settings.vue"
 import LeagueDropdown from "./components/LeagueDropdown.vue"
 
-const credentials = ref<LCUCredentials | null>(null)
-
 const allChampions = ref<Champion[] | null>(null)
 const summoner = ref<Summoner | null>(null)
 const challenges = ref<Challenge[]>([])
 const stats = ref<AramStats | null>(null)
 const selectedChamp = ref<Challenge["champions"][number] | null>(null)
 
+const fetchAllDataFromMain = async () => {
+  const data = (await window.ipcRenderer.invoke(
+    "get-lcu-data"
+  )) as LcuData | null
+
+  if (!data || !data.summoner) {
+    console.log("LCU data not found, waiting for client...")
+    summoner.value = null
+    allChampions.value = null
+    challenges.value = []
+    return
+  }
+
+  summoner.value = data.summoner
+  data.champions.shift()
+  const allChamps = data.champions
+    .filter((c: Champion) => c.active)
+    .sort((a: Champion, b: Champion) => a.name.localeCompare(b.name))
+  allChampions.value = allChamps
+
+  challenges.value = challengeWithCompletion
+    .map((c) => {
+      const challengeData = data.challenges[c.id]
+      if (!challengeData) return null
+      return challengeFromRaw(challengeData, allChamps, c.gameMode)
+    })
+    .filter((c): c is Challenge => c !== null)
+}
+
+const fetchAramStats = async () => {
+  try {
+    const res = await fetch(
+      `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json`
+    )
+    if (!res.ok) throw new Error("Failed to fetch ARAM stats")
+
+    const parsed = parseMerakiFile(await res.json())
+    window.ipcRenderer.send("store-set", "aram-stats", JSON.stringify(parsed))
+    stats.value = parsed
+  } catch (e) {
+    console.error("Could not fetch ARAM stats:", e)
+  }
+}
+
 onMounted(async () => {
-  window.ipcRenderer.send("app-ready")
-  const storedAramStats = await window.ipcRenderer.invoke(
-    "store-get",
-    "aram-stats"
-  )
+  await fetchAllDataFromMain()
+
+  const storedAramStats = await window.ipcRenderer.invoke("store-get", "aram-stats")
   if (storedAramStats) {
     stats.value = JSON.parse(storedAramStats)
   } else {
     await fetchAramStats()
   }
-})
 
-const fetchAramStats = async () => {
-  const res = await fetch(
-    `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json`,
-    { cache: "no-cache" }
+  const storedSettings = await window.ipcRenderer.invoke("store-get", "settings")
+  if (storedSettings) {
+    const settings: StoredSettings = JSON.parse(storedSettings)
+    isColoredWhenDone.value = settings.isColoredWhenDone
+    showChampionNames.value = settings.showChampionNames
+  }
+
+  const storedSelectedChallengeIdx = await window.ipcRenderer.invoke(
+    "store-get",
+    "selected-challenge-index"
   )
-  const parsed = parseMerakiFile(await res.json())
-  window.ipcRenderer.send("store-set", "aram-stats", JSON.stringify(parsed))
-  stats.value = parsed
-}
-
-const fetchLCU = async () => {
-  if (credentials.value === null) return
-  try {
-    const summonerRes = await makeLCURequest<Summoner>(
-      credentials.value,
-      "/lol-summoner/v1/current-summoner"
-    )
-
-    summoner.value = summonerRes
-
-    const champsRes = await makeLCURequest<Champion[]>(
-      credentials.value,
-      `/lol-champions/v1/inventories/${summonerRes.summonerId}/champions-minimal`
-    )
-
-    // Remove the first champ ("None" champion)
-    champsRes.shift()
-    const allChamps = champsRes.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name))
-    allChampions.value = allChamps
-
-    const allChallenges: Record<string, RawChallenge> = await makeLCURequest(
-      credentials.value,
-      "/lol-challenges/v1/challenges/local-player"
-    )
-
-    challenges.value = challengeWithCompletion.map((c) =>
-      challengeFromRaw(allChallenges[c.id], allChamps, c.gameMode)
-    )
-  } catch (e) {}
-}
+  if (storedSelectedChallengeIdx) {
+    selectedChallengeIndex.value = Number(storedSelectedChallengeIdx)
+  }
+})
 
 const selectedChallengeIndex = ref(0)
 const isColoredWhenDone = ref(false)
@@ -92,56 +102,29 @@ const updateSettings = (settings: StoredSettings) => {
 const handlePickEvent = (champId: number | null) => {
   if (champId === null) {
     selectedChamp.value = null
+    return
   }
   const champ = challenges.value[selectedChallengeIndex.value]?.champions.find(
     (c) => c.id === champId
   )
-  if (champ) {
-    selectedChamp.value = champ
-  }
+  selectedChamp.value = champ ?? null
 }
 
 window.ipcRenderer.on("end-of-game", () => {
   selectedChamp.value = null
-  fetchLCU()
+  fetchAllDataFromMain()
 })
 
-window.ipcRenderer.on("pick", async (_event, champId: number | null) => {
+window.ipcRenderer.on("pick", (_event, champId: number | null) => {
   handlePickEvent(champId)
 })
 
 window.ipcRenderer.on(
-  "credentials",
-  async (_event, newCredentials: LCUCredentials) => {
-    credentials.value = newCredentials
-    await fetchLCU()
-    const storedSelectedChallengeIdx = await window.ipcRenderer.invoke(
-      "store-get",
-      "selected-challenge-index"
-    )
-
-    const storedSettings = await window.ipcRenderer.invoke(
-      "store-get",
-      "settings"
-    )
-
-    if (storedSettings) {
-      const settings: StoredSettings = JSON.parse(storedSettings)
-      isColoredWhenDone.value = settings.isColoredWhenDone
-      showChampionNames.value = settings.showChampionNames
-    }
-
-    if (storedSelectedChallengeIdx) {
-      selectedChallengeIndex.value = Number(storedSelectedChallengeIdx)
-    }
-  }
-)
-
-window.ipcRenderer.on(
   "game-start",
-  async (_event, champSelect: { championId: number; puuid: string }[]) => {
+  (_event, champSelect: { championId: number; puuid: string }[]) => {
+    if (!summoner.value) return
     const localPickedChamp = champSelect.find(
-      (c) => c.puuid === summoner.value?.puuid
+      (c) => c.puuid === summoner.value.puuid
     )
     if (localPickedChamp) {
       handlePickEvent(localPickedChamp.championId)
@@ -149,20 +132,13 @@ window.ipcRenderer.on(
   }
 )
 
-window.ipcRenderer.on("refetch", fetchLCU)
-
 const settingsVisible = ref(false)
-
-const onClickSettings = () => {
-  settingsVisible.value = !settingsVisible.value
-}
-
-const challengeOptions = computed(() => {
-  return challenges.value.map((challenge, idx) => ({
+const challengeOptions = computed(() =>
+  challenges.value.map((challenge, idx) => ({
     name: challenge.name,
     value: idx,
   }))
-})
+)
 </script>
 
 <template>
@@ -174,10 +150,10 @@ const challengeOptions = computed(() => {
         :options="challengeOptions"
       />
     </div>
-    <button class="league-button settings-button" @click="onClickSettings">
+    <button class="league-button settings-button" @click="settingsVisible = !settingsVisible">
       <FontAwesomeIcon :icon="faGear" />
     </button>
-    <div class="challenges" v-if="credentials && allChampions">
+    <div class="challenges" v-if="summoner && allChampions">
       <ChallengeSection
         v-if="challenges[selectedChallengeIndex]"
         :challenge="challenges[selectedChallengeIndex]"
@@ -199,7 +175,7 @@ const challengeOptions = computed(() => {
       @update:showChampionNames="
         (v) => updateSettings({ isColoredWhenDone, showChampionNames: v })
       "
-      @refetch="fetchLCU"
+      @refetch="fetchAllDataFromMain"
       @refetch-aram-stats="fetchAramStats"
     />
   </div>
@@ -238,7 +214,8 @@ const challengeOptions = computed(() => {
   border-right: solid 2px #785a28;
 }
 
-.challenges > * {
+.c
+hallenges > * {
   margin-bottom: 32px;
 }
 
