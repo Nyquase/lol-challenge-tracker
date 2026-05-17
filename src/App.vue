@@ -29,7 +29,7 @@ onMounted(async () => {
   window.ipcRenderer.send("app-ready")
   const storedAramStats = await window.ipcRenderer.invoke(
     "store-get",
-    "aram-stats"
+    "aram-stats",
   )
   if (storedAramStats) {
     stats.value = JSON.parse(storedAramStats)
@@ -41,7 +41,7 @@ onMounted(async () => {
 const fetchAramStats = async () => {
   const res = await fetch(
     `https://cdn.merakianalytics.com/riot/lol/resources/latest/en-US/champions.json`,
-    { cache: "no-cache" }
+    { cache: "no-cache" },
   )
   const parsed = parseMerakiFile(await res.json())
   window.ipcRenderer.send("store-set", "aram-stats", JSON.stringify(parsed))
@@ -53,28 +53,30 @@ const fetchLCU = async () => {
   try {
     const summonerRes = await makeLCURequest<Summoner>(
       credentials.value,
-      "/lol-summoner/v1/current-summoner"
+      "/lol-summoner/v1/current-summoner",
     )
 
     summoner.value = summonerRes
 
     const champsRes = await makeLCURequest<Champion[]>(
       credentials.value,
-      `/lol-champions/v1/inventories/${summonerRes.summonerId}/champions-minimal`
+      `/lol-champions/v1/inventories/${summonerRes.summonerId}/champions-minimal`,
     )
 
     // Remove the first champ ("None" champion)
     champsRes.shift()
-    const allChamps = champsRes.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name))
+    const allChamps = champsRes
+      .filter((c) => c.isVisibleInClient)
+      .sort((a, b) => a.name.localeCompare(b.name))
     allChampions.value = allChamps
 
     const allChallenges: Record<string, RawChallenge> = await makeLCURequest(
       credentials.value,
-      "/lol-challenges/v1/challenges/local-player"
+      "/lol-challenges/v1/challenges/local-player",
     )
 
     challenges.value = challengeWithCompletion.map((c) =>
-      challengeFromRaw(allChallenges[c.id], allChamps, c.gameMode)
+      challengeFromRaw(allChallenges[c.id], allChamps, c.gameMode),
     )
   } catch (e) {}
 }
@@ -94,7 +96,7 @@ const handlePickEvent = (champId: number | null) => {
     selectedChamp.value = null
   }
   const champ = challenges.value[selectedChallengeIndex.value]?.champions.find(
-    (c) => c.id === champId
+    (c) => c.id === champId,
   )
   if (champ) {
     selectedChamp.value = champ
@@ -117,12 +119,12 @@ window.ipcRenderer.on(
     await fetchLCU()
     const storedSelectedChallengeIdx = await window.ipcRenderer.invoke(
       "store-get",
-      "selected-challenge-index"
+      "selected-challenge-index",
     )
 
     const storedSettings = await window.ipcRenderer.invoke(
       "store-get",
-      "settings"
+      "settings",
     )
 
     if (storedSettings) {
@@ -134,19 +136,19 @@ window.ipcRenderer.on(
     if (storedSelectedChallengeIdx) {
       selectedChallengeIndex.value = Number(storedSelectedChallengeIdx)
     }
-  }
+  },
 )
 
 window.ipcRenderer.on(
   "game-start",
   async (_event, champSelect: { championId: number; puuid: string }[]) => {
     const localPickedChamp = champSelect.find(
-      (c) => c.puuid === summoner.value?.puuid
+      (c) => c.puuid === summoner.value?.puuid,
     )
     if (localPickedChamp) {
       handlePickEvent(localPickedChamp.championId)
     }
-  }
+  },
 )
 
 window.ipcRenderer.on("refetch", fetchLCU)
