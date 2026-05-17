@@ -2,6 +2,7 @@
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome"
 import { faClose } from "@fortawesome/free-solid-svg-icons"
 import { faGithub } from "@fortawesome/free-brands-svg-icons"
+import { version } from "../../package.json"
 
 const emit = defineEmits(["refetch", "refetch-aram-stats"])
 
@@ -49,6 +50,7 @@ const showChampionNames = defineModel<boolean>("showChampionNames", {
     </div>
 
     <div class="footer">
+      <span>Version {{ version }}</span>
       <a
         class="about"
         href="https://github.com/Nyquase/lol-challenge-tracker"
@@ -70,7 +72,9 @@ const showChampionNames = defineModel<boolean>("showChampionNames", {
   font-size: 16px;
   background-color: #161616;
   color: #cdbe91;
-  box-shadow: inset 0 0 2px #000000, 4px 4px 8px #000;
+  box-shadow:
+    inset 0 0 2px #000000,
+    4px 4px 8px #000;
   border: solid 2px #785a28;
   cursor: initial;
 }
@@ -112,10 +116,12 @@ button {
 
 .footer {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   margin: 12px;
   margin-top: 0;
-  justify-content: center;
 }
 
 .about {

@@ -45,11 +45,11 @@ const props = defineProps<{
 const championBuildLink = (champ: Champion) => {
   switch (props.challenge.mode) {
     case "Arena":
-      return `https://www.op.gg/modes/arena/${champ.alias.toLowerCase()}/build?region=global`
+      return `https://www.op.gg/lol/modes/arena/${champ.alias.toLowerCase()}/build?region=global`
     case "Aram":
       return `https://aram.zone/champion/${champ.alias.toLowerCase()}`
     case "Rift":
-      return `https://u.gg/lol/champions/${champ.alias.toLowerCase()}/build`
+      return `https://op.gg/lol/champions/${champ.alias.toLowerCase()}/build`
   }
 }
 
@@ -92,7 +92,7 @@ const championsList = computed(() => {
 
   if (search.value) {
     return list.filter((c) =>
-      c.name.toLocaleLowerCase().includes(search.value.toLowerCase())
+      c.name.toLocaleLowerCase().includes(search.value.toLowerCase()),
     )
   }
 
