@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron"
+import { execFile } from "node:child_process"
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import path from "node:path"
@@ -158,8 +159,51 @@ async function connectWebsocket(
   })
 }
 
-function connectToLcu(win: BrowserWindow) {
-  const connector = new LCUConnector()
+function findLeagueClientPath() {
+  if (process.platform !== "win32") return Promise.resolve<string | undefined>()
+
+  return new Promise<string | undefined>((resolve) => {
+    execFile(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(Get-CimInstance Win32_Process -Filter \"Name = 'LeagueClientUx.exe'\" | Select-Object -First 1 -ExpandProperty CommandLine)",
+      ],
+      { windowsHide: true },
+      (_error, stdout) => {
+        const installDirectory = stdout.match(
+          /--install-directory=([^\"]+?)(?:\"|(?=\s+--|$))/,
+        )?.[1]
+
+        resolve(
+          installDirectory
+            ? path.join(installDirectory, "LeagueClient.exe")
+            : undefined,
+        )
+      },
+    )
+  })
+}
+
+let connector: LCUConnector | null = null
+let connectorRetry: NodeJS.Timeout | undefined
+
+async function connectToLcu(win: BrowserWindow) {
+  const executablePath = await findLeagueClientPath()
+
+  if (process.platform === "win32" && !executablePath) {
+    if (!connectorRetry) {
+      connectorRetry = setInterval(() => connectToLcu(win), 2000)
+    }
+    return
+  }
+
+  clearInterval(connectorRetry)
+  connectorRetry = undefined
+  connector?.stop()
+  connector = new LCUConnector(executablePath)
   let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
