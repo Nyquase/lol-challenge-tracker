@@ -160,7 +160,7 @@ async function connectWebsocket(
 }
 
 function findLeagueClientPath() {
-  if (process.platform !== "win32") return Promise.resolve<string | undefined>()
+  if (process.platform !== "win32") return new Promise<string | undefined>(() => {})
 
   return new Promise<string | undefined>((resolve) => {
     execFile(
@@ -209,7 +209,7 @@ async function main() {
   await app.whenReady()
   const win = await createWindow()
 
-  ipcMain.on("app-ready", () => connectToLcu(win. clientPath))
+  ipcMain.on("app-ready", () => connectToLcu(win, clientPath))
   ipcMain.on("connect-to-lcu", () => connectToLcu(win, clientPath))
 
   ipcMain.on("store-set", (_, key, value) => {
