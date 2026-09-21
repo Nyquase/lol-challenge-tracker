@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell, ipcMain } from "electron"
+import { execFile } from "node:child_process"
 import { createRequire } from "node:module"
 import { fileURLToPath } from "node:url"
 import path from "node:path"
@@ -158,8 +159,36 @@ async function connectWebsocket(
   })
 }
 
-function connectToLcu(win: BrowserWindow) {
-  const connector = new LCUConnector()
+function findLeagueClientPath() {
+  if (process.platform !== "win32") return Promise.resolve<string | undefined>()
+
+  return new Promise<string | undefined>((resolve) => {
+    execFile(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "(Get-CimInstance Win32_Process -Filter \"Name = 'LeagueClientUx.exe'\" | Select-Object -First 1 -ExpandProperty CommandLine)",
+      ],
+      { windowsHide: true },
+      (_error, stdout) => {
+        const installDirectory = stdout.match(
+          /--install-directory=([^\"]+?)(?:\"|(?=\s+--|$))/,
+        )?.[1]
+
+        resolve(
+          installDirectory
+            ? path.join(installDirectory, "LeagueClient.exe")
+            : undefined,
+        )
+      },
+    )
+  })
+}
+
+function connectToLcu(win: BrowserWindow, clientPath: string) {
+  const connector = new LCUConnector(clientPath)
   let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
@@ -176,11 +205,12 @@ function connectToLcu(win: BrowserWindow) {
 const store = new Store()
 
 async function main() {
+  const clientPath = await findLeagueClientPath()
   await app.whenReady()
   const win = await createWindow()
 
-  ipcMain.on("app-ready", () => connectToLcu(win))
-  ipcMain.on("connect-to-lcu", () => connectToLcu(win))
+  ipcMain.on("app-ready", () => connectToLcu(win. clientPath))
+  ipcMain.on("connect-to-lcu", () => connectToLcu(win, clientPath))
 
   ipcMain.on("store-set", (_, key, value) => {
     store.set(key, value)

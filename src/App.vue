@@ -66,7 +66,9 @@ const fetchLCU = async () => {
     // Remove the first champ ("None" champion)
     champsRes.shift()
     const allChamps = champsRes
-      .filter((c) => c.isVisibleInClient)
+      .filter(
+        (c) => c.isVisibleInClient && !c.alias.toLowerCase().startsWith("jade_"),
+      )
       .sort((a, b) => a.name.localeCompare(b.name))
     allChampions.value = allChamps
 
