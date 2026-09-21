@@ -187,23 +187,8 @@ function findLeagueClientPath() {
   })
 }
 
-let connector: LCUConnector | null = null
-let connectorRetry: NodeJS.Timeout | undefined
-
-async function connectToLcu(win: BrowserWindow) {
-  const executablePath = await findLeagueClientPath()
-
-  if (process.platform === "win32" && !executablePath) {
-    if (!connectorRetry) {
-      connectorRetry = setInterval(() => connectToLcu(win), 2000)
-    }
-    return
-  }
-
-  clearInterval(connectorRetry)
-  connectorRetry = undefined
-  connector?.stop()
-  connector = new LCUConnector(executablePath)
+function connectToLcu(win: BrowserWindow, clientPath: string) {
+  const connector = new LCUConnector(clientPath)
   let wsTimeout: NodeJS.Timeout
   connector.on("connect", (credentials) => {
     sendCredentials(win, credentials)
@@ -220,11 +205,12 @@ async function connectToLcu(win: BrowserWindow) {
 const store = new Store()
 
 async function main() {
+  const clientPath = await findLeagueClientPath()
   await app.whenReady()
   const win = await createWindow()
 
-  ipcMain.on("app-ready", () => connectToLcu(win))
-  ipcMain.on("connect-to-lcu", () => connectToLcu(win))
+  ipcMain.on("app-ready", () => connectToLcu(win. clientPath))
+  ipcMain.on("connect-to-lcu", () => connectToLcu(win, clientPath))
 
   ipcMain.on("store-set", (_, key, value) => {
     store.set(key, value)
